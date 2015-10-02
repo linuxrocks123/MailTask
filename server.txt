@@ -1,0 +1,232 @@
+OnTask
+------
+
+Maybe call the server "OnTask".  Maybe something else.
+
+Purpose is to coordinate tasks and information among different
+instances of email program, and to handle notifications on Android
+client.
+
+Server Storage
+--------------
+
+Hierarchy:
+mailtask_data
+ ACCOUNT_INFO
+ ADDRESSBOOK
+ /1
+  READ_MESSAGES (uses MIME-ID)
+  /INBOX
+   UIDVALIDITY
+   (Files named the UID of the messages they refer to)
+  /Sent
+  ...
+ /2
+ ...
+ /Tasks
+  MASTER
+  TIMESTAMP
+  TIMESTAMP
+
+Each account has its own directory.  UIDVALIDITY is used to determine
+when the UID subdirectory needs to be refreshed.  UID subdirectory is
+a bunch of links to files in the Message-ID directory.  Each file in
+Message-ID directory is the entire RFC822 message.  Tasks contain
+pseudo-MIME symlinks to the messages embedded in them.  They also
+contain pseudo-MIME indicators for if they are deadline or meeting
+tasks.  The server parses the MIME file to discover the
+deadline/meeting information for a task when it's uploaded or revised
+by a client.  The MASTER file contains information about which tasks
+are current, which are finished, and which are deleted.  The server
+decides when, if ever, to permanently delete tasks.
+
+Server Behavior
+---------------
+
+All requests to view email, move it, delete it, etc., are passed from
+the client to the server.  Clients never directly connect to an IMAP
+server.
+
+The server is in charge of uploading an email to "Sent" when it is
+sent.  This should be done with a trigger.
+
+Drafts are held locally on the server, not on the IMAP server.  Also,
+there's no "drafts" folder; a draft is just a task containing an
+unsent email message (the entire message is held in this case, not a
+symlink to it).
+
+So, just to have a place to put all of these, these are the triggers
+that can be set:
+- New message received
+- Message has been sent
+- Time has elapsed (for updating address book, for instance)
+- Task has been modified (for syncing with Google Calendar)
+
+Client-Server Message Identity Handling
+---------------------------------------
+
+The server maintains its email UID symlink list solely for the purpose
+of figuring out when stuff is deleted or added to the server.  UIDs
+are never communicated to the client.  The client is sent the location
+of the message in the message-ID directory and keeps track of that.
+
+Trigger Protocol
+----------------
+
+New message: command-line parameter with pathname to message location
+on disk.
+
+Sent message: command-line parameter with pathname to temporary file
+containing sent message.
+
+Time has elapsed: no parameters
+
+Task has been modified: command-line parameter with pathname to
+location of modified task
+
+Trigger processes can print specially formatted strings to stdout.
+The stdout from triggers is parsed by the server, which takes action
+based on the triggers' directives.  Protocol is identical to
+networking protocol except the server never "talks back" and, for the
+"Sent Message" trigger, the command to send a message results in the
+message being copied to the sent folder rather than actually sent.
+
+Networking Protocol
+-------------------
+
+Use OnTask protocol as a base.  Initial handshake protocol is fine as
+is.
+
+When clients first start, they get the headers for everything from the
+server.  They can and should cache message headers.  They can, if they
+want, cache message bodies as well.  Caches remain valid until the
+client is disconnected by a FECC-OFF (caches are preserved through a
+SIGN-OFF or broken socket, which is treated as a sign off).  Server
+assumes everyone has a cache and sends invalidation messages whenever
+a task is changed.  The server sends out messages containing the
+header of a task when it is first created and of an email when it is
+first received.  The server never sends out the full body of a task or
+email unless the client requests it.
+
+Headers include, among other things, the containing folders UIDs,
+message-IDs, and dates of every message and task.  (Well, tasks don't
+have message-IDs; they are simply identified by the number of seconds
+since 1970 they were created.)  This is enough for a client to decide
+whether to invalidate an entry in its cache.
+
+When a client reconnects after a SIGN-OFF or broken socket, the client
+sends the server the last UID it received in each mail folder and the
+UID-validity of each mail folder.  It also sends the timestamp of the
+last task creation/modification message it knows about.  This tells
+the server which headers it has to send to the client.  If the
+UIDVALIDITY of a mail folder has changed since the client
+disconnected, the server resends headers for every email message in
+that folder.
+
+If the server loses its IMAP connection, then regains it, but the
+UIDVALIDITY of some folders have changed, the server sends a cache
+invalidation message to each client for each folder with a new
+UIDVALIDITY.  This cache invalidation message is followed by a
+complete copy of all headers in the folder.
+
+A client disconnected by a FECC-OFF must destroy it entire cache.
+
+Client Behavior While Disconnected
+----------------------------------
+
+When a client is connected, modifications to tasks and the creation of
+new tasks is reported immediately to the server.  When the client is
+disconnected through SIGN-OFF or a broken socket, updates are queued.
+In the event of a conflict to an update, the latest timestamped update
+to a task wins.
+
+Email cannot be deleted or moved while disconnected, and the address
+book cannot be updated.
+
+Protocol Itself
+---------------
+
+Handshake
+---------
+
+Phase 1:
+
+Socket 1
+Server: HELLO
+Client: AUTHINFO
+Server: ACK
+Cient: CID-REQUEST
+Server: CID-NOTIFY
+Client: ACK
+
+Socket 2
+Client: CID-INFO
+Server: ACK
+
+Phase 2:
+
+Socket 1
+Server: TREE-NOTIFY (gives total folder structure, but not list of
+                     nessages or tasks)
+Client: ACK
+
+Socket 2
+Client: FOLDER-UPDATE-REQ
+Server: FOLDER-UPDATE-NOTIFY
+(repeats for each folder)
+(address book treated like special folder)
+
+Connected Operation
+-------------------
+
+(to notify client of updated task or email)
+Server: NODE-UPDATE-NOTIFY
+Client: ACK
+
+(to notify server of created or updated task)
+Client: NODE-UPDATE
+Server: ACK or NAK (NAK if conflicting update, and you lost)
+
+(if user wants to send an email)
+Client: SEND-EMAIL
+Server: ACK
+
+(if user wants to copy an email or task)
+Client: COPY-NODE
+Server: ACK
+
+(if user wants to move an email)
+Client: MOVE-EMAIL
+Server: ACK
+
+(if user wants to delete a message or task)
+Client: DELETE-NODE
+Server: ACK
+
+(if user wants to update address book with 1 or more entries)
+Client: ADDRBOOK-UPDATE
+Server: ACK
+
+(if server's connection status changes)
+Server: CONNECT-STATUS-NOTIFY
+Client: ACK
+
+(to get entire message or task from server, given headers)
+Client: NODE-REQUEST
+Server: NODE-BODY-FULL
+
+(if a folder has been invalidated due to UIDVALIDITY change)
+Socket 1
+Server: FOLDER-INVALIDATE-NOTIFY
+Client: ACK
+
+Socket 2
+Client: FOLDER-UPDATE-REQ
+Server: FOLDER-UPDATE-NOTIFY
+
+(keepalive)
+Server: KEEPALIVE-NOTIFY
+Client: ACK
+
+Client: KEEPALIVE-NOTIFY
+Server: ACK

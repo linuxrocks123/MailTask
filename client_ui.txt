@@ -1,0 +1,45 @@
+UI
+--
+
+Traditional desktop application.
+
+Folder view:
+- Left pane: All folders/subfolders, currently selected folder
+  highlighted
+- Top pane: Name of currently selected folder
+- Bottom pane headers: Subject/From/Date
+
+Email view:
+- Left pane: All MIME fields/subfields and "Related" view, currently
+  selected MIME field or "Related" view highlighted
+- Top pane: Name of currently selected email
+- Bottom pane headers: empty unless in "Related" view
+- Bottom pane: ASCII-converted display of selected MIME field data
+
+Task view:
+- Left pane: All Task MIME components, "Contained Emails" and
+  "Related" views
+- Top pane: Name of currently selected Task
+- Bottom pane headers: empty unless in "Contained Emails" or "Related"
+  view
+- Bottom pane: ASCII-converted display of selected task component data
+
+Composition view:
+- Left pane: All message MIME components, including subject/from/to
+  headers
+- Top pane: Email information
+- Bottom pane headers: empty
+- Bottom pane: text editor for currently selected MIME component
+
+Tasks
+-----
+
+Tasks typically contain:
+- References to emails
+- Other components
+
+When a new email is received, a new task is created by a special
+client if a filter matches it.  A completed task is resurrected if the
+email refers to an email that was part of that task's list of
+contained emails.  This is all done by one or more clients that just
+happen to feel like managing this stuff.

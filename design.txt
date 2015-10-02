@@ -1,0 +1,153 @@
+- Uses IMAP only.
+- Client/server architecture.
+- Server is task manager.
+- Keepalive packets.
+- One client is "designated uploader" and auto-generates tasks for new
+  emails.
+- "Trash" bin keeps last 10 or so deleted tasks, in case you delete
+  something by accident.
+- If you respond to an email or manually mark task "completed", it's
+  kept in the clients' and server's datastore and is not deleted.  The
+  task is "resurrected" if there is another email on the matter.
+- "Tasks" are multipart projects consisting of:
+  - email message or messages (typically, only "last in the thread" is
+    made part of the task; also, each new message is made into its own
+    task by default, even if it's part of the same thread, but they
+    can be merged manually)
+  - Embedded files of any type, including shortcuts.  These files need
+    to be transferred over task server so should probably not be too
+    large.
+- Embedded files in tasks can be made attachments to email messages if
+  so desired.
+- Sender info:
+  - Custom triggers run on "designated uploader" machine when email
+    received and made into task.
+  - These triggers follow an API in which they can direct MailTask to
+    add a file to the new task.
+  - This file can, for instance, indicate what class and section a
+    student is in.
+  - Potentially other uses for custom triggers, such as auto-adding
+    someone to a Jabber server.
+- Address Book:
+  - Managed by server; "designated uploader" updates the address
+    book with custom trigger.  Updates to book done by running custom
+    trigger.  This is done every X minutes (polling).
+  - Updates can be adds, appends, replaces, or deletes.
+  - Any client can update address book if the user makes changes using
+    the client program interface.
+
+---
+
+This is all fine for checklist tasks.  What about meetings and
+deadline tasks?
+
+- Tasks are checklist by default, can be made into meeting or deadline
+  in task editor.
+  Implementation: a component (using the same machinery managing
+  emails and embedded files) is added to the task indicating that the
+  task is of a non-default (non-checklist) type.  It is invalid for a
+  message to contain more than one of these components.
+- These can be managed directly by a client, or through exporting to
+  an external calendar program.
+- Designated uploader can run custom trigger every time it receives a
+  change notification of some sort from the server.  Most likely, this
+  trigger will use the Google Calendar APIs, if I decide to go this
+  route.
+
+---
+
+Handling HTML Mail and Other Evil Things:
+- Run a filter when you run across HTML email as defined by the
+  Content-Type MIME parameter.  This filter will be html2text.py.
+- Filters can be defined for any Content-Type.  They are given the
+  source on stdin and are expected to output ASCII or UTF-8 on
+  stdout.  Filters can do stuff like fork off xpdf, because why not?
+  It would be polite to scribble something like "see xpdf" onto stdout
+  so the user has some clue what's going on.
+- What about figuring out what to display in multipart MIME?
+  Should be configurable, but, by default:
+  Text
+  HTML
+  Alphabetical
+- Probably should use VMIME.  It includes network support, but you'll
+  still use the socket++ library for communication with your server.
+- There's also cpp-netlib, but VMIME looks slightly better.
+- Actually using Python now so email/imaplib modules ftw.
+
+---
+
+Updates:
+- No more "designated uploader".  Server is only thing connecting to
+  email server.
+- Tasks aren't generated for every message.  When an email is
+  received, a trigger is run which looks at the email message and
+  decides whether to make a task out of it and, if so, directs server
+  as to what, in addition to the email, should be added to the task.
+
+---
+
+12-12-2014
+
+- If you need to reference a non-MIME email in a task or email, refer
+  to it as "NONMIME-TimestampID-12345678@1.mailtask", where
+  "12345678" is the is the number of seconds since 1970 and the "1" in
+  "1.mailtask" is the MailTask account ID.
+
+---
+
+12-21-2014
+
+- "Designated uploader" can be implemented as standard server client.
+  So it should be.
+
+---
+
+12-27-2014
+
+- In order to support features like "unread messages", implement
+  atomic update operation where you read a file then write it while
+  glock is held.  This may be able to replace the specialized addrbook
+  code as well.
+
+---
+
+01-31-2015
+
+- Tasks need to have information on whether they are completed and
+  other administrative data.
+- Special headers for tasks:
+  - X-MailTask-BlackHole: when present, task is never finished and
+    never has related messages.
+  - X-MailTask-Virgin: when present, task is not finished even though
+    it has no drafts.  Virgin status removed when first draft added to
+    task.
+  - X-MailTask-Forced-Complete: when present, task is finished even
+    though it still has drafts. 
+- All non-virgin tasks without drafts are considered complete and are
+  not shown in client by default.
+- As described in client_ui.txt, tasks are created and resurrected by
+  special utility clients (NOT this one, though it might use some of
+  our code).
+
+---
+
+02-08-2015
+
+How, exactly, MailTask task MIME messages are going to support
+checklist, meeting, and deadline tasks: X-MailTask-Date-Info header.
+
+Checklist: X-MailTask-Date-Info header not present
+Deadline: X-MailTask-Date-Info contains RFC2822 date string of
+          deadline of task
+Meeting: <Start of Meeting> "/" <End of Meeting>
+         Start and end of meeting given as RFC2822 date strings
+
+In order to optimize figuring out which tasks are completed versus
+incomplete:
+
+X-MailTask-Completion-Status header is one of "Completed",
+"Incomplete", or "Time-Dependent".  "Completed" means the task is
+completed; "Incomplete" means the task is not completed and will not
+become completed on its own; and, "Time-Dependent" means the task was
+not completed when last checked, but that was only because of the
+deadline or meeting end time, so it may be necessary to check again.

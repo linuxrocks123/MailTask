@@ -1,0 +1,55 @@
+Format of file_obj: ("UID",Message object)
+
+Case breakdown (head of stack is listed last):
+
+Viewing a folder: [(FOLDER,"string containing pathname of folder")]
+
+(This state never reached; UI automatically opens body upon descent
+into message)
+Viewing a message: [(FOLDER,"string containing name of folder"),
+                    (MESSAGE,"UIDpath",Message object containing MIME tree of message)]
+
+Viewing headers of a message ("Metadata" of single task):
+        [(FOLDER,"string containing name of folder"),
+         (MESSAGE,Message object containing MIME tree of message,"UIDpath"),
+         (HEADERS)]
+
+Viewing attachments of message:
+        [(FOLDER,"string containing name of folder"),
+         (MESSAGE,Message object containing MIME tree of message,"UIDpath"),
+         (ATTACHMENTS)]
+
+Viewing single attachment of message:
+        [(FOLDER,"string containing name of folder"),
+         (MESSAGE,Message object containing MIME tree of message,"UIDpath"),
+         (ATTACHMENTS),
+         (SUBMESSAGE,sub-Message object containing viewed component of message)]
+
+Viewing non-header component of message (body):
+        [(FOLDER,"string containing name of folder"),
+         (MESSAGE,Message object containing MIME tree of message,"UIDpath"),
+         (SUBMESSAGE,sub-Message object containing viewed component of message)]
+
+Viewing RELATED messages ("Emails" component of single task):
+        [(FOLDER,"string containing name of folder"),
+         (MESSAGE,Message object containing MIME tree of message,"UIDpath"),
+         (RELATED)]
+
+Viewing single related message (state never reached):
+        [(FOLDER,"string containing name of folder"),
+         (MESSAGE,Message object containing MIME tree of message,"UIDpath"),
+         (RELATED),
+         (MESSAGE,Message object containing MIME tree of related message,"UIDpath")]
+
+Viewing "Drafts" component of single task:
+        [(FOLDER,"string containing name of folder"),
+         (MESSAGE,Message object containing MIME tree of message,"UIDpath"),
+         (DRAFTS)]
+
+Viewing single "Drafts" message component (state never reached):
+        [(FOLDER,"string containing name of folder"),
+         (MESSAGE,Message object containing MIME tree of message,"UIDpath"),
+         (DRAFTS),
+         (SUBMESSAGE,Message object containing MIME tree of draft message)]
+
+Everything else defined by induction.
