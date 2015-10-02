@@ -145,7 +145,7 @@ def attach_payload(parent,child):
         del parent['X-MailTask-Virgin']
     if 'Content-Type' not in child:
         child.set_type("text/plain")
-    if 'To' in child:
+    if 'To' in child or 'Cc' in child or 'Bcc' in child or 'Message-ID' in child:
         child = rfc822_encapsulate(child)
     if isinstance(parent.get_payload(),str):
         first_payload = email.message.Message()
