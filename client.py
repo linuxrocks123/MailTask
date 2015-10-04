@@ -73,7 +73,7 @@ MODIFIABLE_HEADERS = CaseInsensitiveList(["From","Reply-To","To","Cc","Bcc","Sub
 EMAIL_MODIFIABLE_HEADERS = CaseInsensitiveList(["From","Reply-To","To","Cc","Bcc"])
 
 ##Constant tuple containing all headers that should not be auto-deleted when replyifying a message
-NON_DELETE_HEADERS = MODIFIABLE_HEADERS + CaseInsensitiveList(["References","MIME-Version","Content-Type"])
+NON_DELETE_HEADERS = CaseInsensitiveList(MODIFIABLE_HEADERS + CaseInsensitiveList(["References","MIME-Version","Content-Type"]))
 
 ##Account Info list
 account_info = []
