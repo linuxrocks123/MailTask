@@ -1142,7 +1142,7 @@ class ClientState:
                 self.stack.pop()
 
         #Refresh screen
-        ui.left_browser_callback(ui.left_browser)
+        ui.left_browser_callback(ui.left_browser,ClientUI.STACK_POPPED if inside_draft else ClientUI.SELF_INDUCED)
 
     ##Send every draft email associated with task
     # Must have task selected or be viewing task
