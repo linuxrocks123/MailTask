@@ -106,6 +106,24 @@ class CaseInsensitiveDict(collections.MutableMapping):
     def __repr__(self):
         return str(dict(self.items()))
 
+#Source: https://mail.python.org/pipermail/python-list/2012-March/621932.html
+class CaseInsensitiveDefaultDict(CaseInsensitiveDict):
+     def __init__(self, default_factory=None, init=None):
+         if not callable(default_factory):
+             raise TypeError('First argument must be callable')
+         super(CaseInsensitiveDefaultDict, self).__init__(init)
+         self.default_factory = default_factory
+
+     def __missing__(self, key):
+         self[key] = val = self.default_factory()
+         return val
+
+     def __getitem__(self, key):
+         try:
+             return super(CaseInsensitiveDefaultDict, self).__getitem__(key)
+         except KeyError:
+             return self.__missing__(key)
+
 class LookupDict(dict):
     """Dictionary lookup object."""
 

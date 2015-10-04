@@ -20,7 +20,7 @@
 
 from collections import deque
 from html2text import html2text
-from request_structures import CaseInsensitiveDict
+from request_structures import CaseInsensitiveDict,CaseInsensitiveDefaultDict
 
 if __name__=="__main__":
     from fltk import *
@@ -43,7 +43,6 @@ import mt_utils
 from ontask_messages import *
 
 import base64
-from collections import defaultdict
 from copy import copy
 import cPickle
 import email
@@ -482,7 +481,7 @@ class ClientUI:
                         break
                     mb_counter+=1
 
-                    dd_hdrs = defaultdict(lambda: "", entry[1])
+                    dd_hdrs = CaseInsensitiveDefaultDict(lambda: "", entry[1])
                     ui.main_browser.add("@."+dd_hdrs["Subject"]+"\t"+get_prettyprintable_column_str(entry[1])+"\t@."+(mt_utils.browser_time(dd_hdrs["Date"]) if dd_hdrs["Date"]!="" else ""))
             if ui.mb_selected<=len(nsync.cache[c_state.stack[-1][1]]):
                 ui.main_browser.select(ui.mb_selected)
@@ -582,7 +581,7 @@ class ClientUI:
             #Update browser
             ui.main_browser.clear()
             for entry_ in nsync.cache["RELATED"]:
-                entry = defaultdict(lambda: None, entry_[1])
+                entry = CaseInsensitiveDefaultDict(lambda: None, entry_[1])
                 ui.main_browser.add("@."+entry["Subject"]+"\t@."+entry["From"]+"\t@."+entry["Date"])
             if ui.mb_selected<=len(nsync.cache["RELATED"]):
                 ui.main_browser.select(ui.mb_selected)
