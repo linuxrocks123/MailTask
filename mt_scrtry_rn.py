@@ -186,9 +186,7 @@ def handle_msg(uidpath,rfc822):
                     if task_mid!=None:
                         break
         
-        #We found one: update its References header and be done with it.
-        #No need to update Task's completion status: we will receive a
-        #"mirror" update of our change from server that will handle that.
+        #We found one: update its References and Date headers and completion status.
         if task_mid!=None:
             print "handle_msg: Updating reference header of task "+task_mid
             sys.stdout.flush()
@@ -202,8 +200,14 @@ def handle_msg(uidpath,rfc822):
             #Update task_msg Date field
             del task_msg['Date']
             task_msg['Date']=email.utils.formatdate(localtime=True)
+
+            #Update task completion status
+            del task_msg['X-MailTask-Forced-Complete']
+            del task_msg['X-MailTask-Completion-Status']
+            task_msg['X-MailTask-Completion-Status']="Incomplete"
             
             nsync.node_update(task_mid,task_msg.as_string())
+            mirror.add(task_mid)
         else: #No existing task, so we must make one
             print "handle_msg: Creating new task referencing MID "+msg['Message-ID']
             sys.stdout.flush()
@@ -433,13 +437,19 @@ def main():
 
     #Main loop
     last_timedep_check=0
+    startup_status=0
     try:
         while True:
             while server_synchronize():
-                if os.path.isfile(client.cachedir+"/FORCE_EXIT"):
+                if len(nsync.server_update_queue) > 50 and (startup_status==0 or startup_status==2) or len(nsync.server_update_queue) < 40 and startup_status==1:
+                    startup_status+=1
+                
+                if os.path.isfile(client.cachedir+"/FORCE_EXIT") or startup_status==3:
                     cPickle.dump(nsync.cache,open(client.cachedir+"/client.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
                     cPickle.dump(msg_dict,open(client.cachedir+"/msg_dict.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
                     cPickle.dump(l_timedep_tasks,open(client.cachedir+"/l_timedep_tasks.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
+                    if startup_status==3:
+                        print "FATAL: We appear to have lost our cmessage connection."
                     sys.exit(0)
             time.sleep(5)
             if time.time()-last_timedep_check > 600:
