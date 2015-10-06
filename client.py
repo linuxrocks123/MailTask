@@ -821,6 +821,11 @@ class ClientState:
             #Send updated file to server
             nsync.node_update(self.get_stacktop_uidpath(),self.get_stacktop_msg().as_string())
         else:
+            if self.stack[-1][0]==ClientState.FOLDER and self.stack[0][1].find("Tasks")!=0 or self.stack[-1][0]!=ClientState.FOLDER and self.get_stacktop_uidpath().find("Tasks")!=0:
+                response = fl_ask("Warning: You are about to modify an IMAP message.  Are you sure you want to do this?")
+                if not response:
+                    return 1
+            
             self.oldtext = ui.main_buffer.text()
             ui.main_display.hide()
 
@@ -1005,6 +1010,11 @@ class ClientState:
         if ui.main_editor.visible() or Fl_Widget.visible(ui.main_browser) and not ui.main_browser.value():
             return 0
 
+        if self.stack[-1][0]==ClientState.FOLDER and self.stack[0][1].find("Tasks")!=0 or self.stack[-1][0]!=ClientState.FOLDER and self.get_stacktop_uidpath().find("Tasks")!=0:
+            response = fl_ask("Warning: You are about to modify an IMAP folder.  Are you sure you want to do this?")
+            if not response:
+                return 1
+        
         b_index = ui.main_browser.value()
         
         if self.stack[-1][0]==ClientState.RELATED: #RELATED message view
