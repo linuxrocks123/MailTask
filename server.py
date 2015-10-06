@@ -106,6 +106,10 @@ class client_service_thread:
             if account!="Tasks" and stripped_name not in special_names:
                 uid = int(stripped_name)
                 conn = imap_conns[int(account)]
+                if imap_folder=="Sent" and account_info[int(account)][2]=="imap.gmail.com":
+                    conn.select("[Gmail]/Sent Mail")                
+                else:
+                    conn.select(imap_folder)
                 conn.uid("store",uid,"+FLAGS","(\\Deleted)")
                 conn.expunge()
 
