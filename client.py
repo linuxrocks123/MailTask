@@ -1318,11 +1318,14 @@ class ClientState:
         #VILE CREATURE, THOU DURST CALL UPON ME?
         #WALK NO MORE, PERVERSION OF NATURE!
         if body.get_content_type()=="text/html":
-            body.set_payload(mt_attache.text_html(body,mt_attache.FLTK_ENCODING))
-            del body['Content-Type']
-            body['Content-Type']="text/plain"
+            payload = mt_attache.text_html(body,mt_attache.FLTK_ENCODING)
         else:
-            body.set_payload(mt_attache.text_plain(body,mt_attache.FLTK_ENCODING))
+            payload = mt_attache.text_plain(body,mt_attache.FLTK_ENCODING)
+        del body['Content-Type']
+        body['Content-Type']="text/plain"
+        del body['Content-Transfer-Encoding']
+        body['Content-Transfer-Encoding']='8BIT'
+        body.set_payload(payload)
 
         #Delete attachments etc.
         msg.set_payload([body])
@@ -1389,6 +1392,7 @@ class ClientState:
         #Create new draft message
         newmsg = email.message.Message()
         newmsg['Content-Type'] = "message/rfc822"
+        newmsg['Content-Transfer-Encoding']='8BIT'
         newmsg['From'] = account_info[accid]
 
         #Create body for new draft message
