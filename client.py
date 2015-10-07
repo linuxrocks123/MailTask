@@ -1464,7 +1464,7 @@ class ClientState:
         nick=fl_input("Enter name of address book entry:")
         if nick==None:
             return 1
-        current_val = address_book[nick] if nick in address_book else ""
+        current_val = addrbook_lookup(nick) if nick in address_book else ""
         newval = fl_input("Enter new value for address book entry "+nick,current_val)
         self.update_addr_book(nick,newval,True)
         return 1
