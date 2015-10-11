@@ -1626,10 +1626,22 @@ class ClientNetSync:
             def tasks_cmp(x,y):
                 x_completed = 'X-MailTask-Completion-Status' in x[1] and x[1]['X-MailTask-Completion-Status']=="Completed"
                 y_completed = 'X-MailTask-Completion-Status' in y[1] and y[1]['X-MailTask-Completion-Status']=="Completed"
+                x_dinfo = 'X-MailTask-Date-Info' in x[1]
+                y_dinfo = 'X-MailTask-Date-Info' in y[1]
                 if x_completed and not y_completed:
                     return -1
                 elif not x_completed and y_completed:
                     return 1
+                elif x_dinfo and not y_dinfo:
+                    return 1
+                elif not x_dinfo and y_dinfo:
+                    return -1
+                elif x_dinfo: #and y_dinfo
+                    xdate_ = email.utils.parsedate_tz(x[1]['X-MailTask-Date-Info'].split("/")[0].strip())
+                    ydate_ = email.utils.parsedate_tz(y[1]['X-MailTask-Date-Info'].split("/")[0].strip())
+                    xdate = email.utils.mktime_tz(xdate_) if xdate_!=None else 0
+                    ydate = email.utils.mktime_tz(ydate_) if ydate_!=None else 0
+                    return ydate-xdate
                 else:
                     return x[0]-y[0]
             self.cache[tokens[0]].sort(cmp=tasks_cmp,reverse=True)
