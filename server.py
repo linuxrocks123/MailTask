@@ -106,10 +106,9 @@ class client_service_thread:
             if account!="Tasks" and stripped_name not in special_names:
                 uid = int(stripped_name)
                 conn = imap_conns[int(account)]
-                if imap_folder=="Sent" and account_info[int(account)][2]=="imap.gmail.com":
-                    conn.select("[Gmail]/Sent Mail")                
-                else:
-                    conn.select(imap_folder)
+                if imap_folder=="Sent":
+                    imap_folder = account_info[int(account)][5]
+                conn.select(imap_folder)
                 conn.uid("store",uid,"+FLAGS","(\\Deleted)")
                 conn.expunge()
 
@@ -194,7 +193,7 @@ class client_service_thread:
         #GMail doesn't like it when you upload your own copy of sent messsages.
         #As other sites with this behavior are found, they will be added here.
         if ainfo[2] not in ["imap.gmail.com"]:
-            imapconn.append("Sent","",time.time(),tosend)
+            imapconn.append(ainfo[5],"",time.time(),tosend)
 
         self.socket.write(OnTask_Message("ACK","").get_message_string())
 
@@ -369,8 +368,8 @@ def imap_handler(username,password,server,status_index):
                     sys.stdout.flush()
                     #GMail IMAP is farked up and names its "Sent" folder "[Gmail]/Sent Mail"
                     real_folder = folder
-                    if server=="imap.gmail.com" and folder=="Sent":
-                        real_folder="[Gmail]/Sent Mail"
+                    if folder=="Sent":
+                        real_folder=account_info[status_index][5]
 
                     server_uidnext = int(conn.status(real_folder,"(UIDNEXT)")[1][0].split("UIDNEXT ")[1].rstrip(" )"))
                     print server+"/"+folder+": UIDNEXT="+repr(server_uidnext)
@@ -422,9 +421,20 @@ def imap_handler(username,password,server,status_index):
                 #Get folders: INBOX, Sent
                 for folder in ('INBOX','Sent'):
                     #GMail IMAP is farked up and names its "Sent" folder "[Gmail]/Sent Mail"
+                    #There are other instances of stupidity on other servers.
                     real_folder = folder
-                    if server=="imap.gmail.com" and folder=="Sent":
-                        real_folder="[Gmail]/Sent Mail"
+                    if real_folder=="Sent" and len(account_info[status_index]) >= 6:
+                        real_folder = account_info[status_index][5]
+                    elif real_folder=="Sent":
+                        if server=="imap.gmail.com" and folder=="Sent":
+                            real_folder="[Gmail]/Sent Mail"
+                        elif conn.select(real_folder)[0]!="NO":
+                            real_folder="Sent"
+                        elif conn.select("Sent Items")[0]!="NO":
+                            real_folder="Sent Items"
+                        else:
+                            print server+": couldn't find Sent folder; things probably won't work."
+                        account_info[status_index]=account_info[status_index]+(real_folder,)
                     
                     conn.select(real_folder)
                     validity = open(repr(status_index)+"/"+folder+"/UIDVALIDITY").read().rstrip()
