@@ -441,6 +441,13 @@ def imap_handler(username,password,server,status_index):
 
                     #Do we need to invalidate folder?
                     if validity!=conn.status(real_folder,"(UIDVALIDITY)")[1][0].split("UIDVALIDITY ")[1].rstrip(" )"): #yup
+                        print "Critical situation: Invalid UIDVALIDITY"
+                        print "old validity: "+validity
+                        print "new validity: "+conn.status(real_folder,"(UIDVALIDITY)")[1][0].split("UIDVALIDITY ")[1].rstrip(" )")
+                        print "Sleeping 15 seconds so you can Ctrl-C if you want."
+                        sys.stdout.flush()
+                        time.sleep(15)
+
                         #Notify everyone of situation
                         for server_socket in server_notify.items():
                             try:
