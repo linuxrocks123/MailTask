@@ -28,6 +28,9 @@ import time
 import mt_utils
 from ontask_messages import *
 
+##Should we mark messages read, as a normal client, or leave everything unread?
+MARK_MESSAGES_READ=True
+
 ##Global lock
 glock = threading.Lock()
 
@@ -378,7 +381,7 @@ def imap_handler(username,password,server,status_index):
                         continue
 
                     #Still here?  We've got some downloading to do.
-                    conn.select(real_folder)
+                    conn.select(real_folder, readonly=(not MARK_MESSAGES_READ))
                     for uid in conn.uid("search",None,"ALL")[1][0].split():
                         if int(uid) < uidnext_dict[folder]:
                             continue
