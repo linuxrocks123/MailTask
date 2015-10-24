@@ -1336,10 +1336,11 @@ class ClientState:
                 del body[header[0]]
         
         #Quote ("With "> ") the previous body.
-        lines = body.get_payload(decode=True).splitlines()
+        body_to_quote = body.get_payload(decode=True)
+        lines = body_to_quote.splitlines()
         lines = map(lambda x: "> "+x,lines)
         lines.insert(0,"On "+msg["Date"]+", "+oldfrom+" wrote:")
-        body.set_payload("\n".join(lines)+"\n")
+        body.set_payload("\n".join(lines)+"\n"+("-- \n"+signature+"\n" if signature!="" and body_to_quote.find(signature)==-1 else ""))
             
         #Update parent task on server
         nsync.node_update(self.get_stacktop_uidpath(),self.stack[-4][1].as_string())
@@ -1398,7 +1399,7 @@ class ClientState:
         #Create body for new draft message
         nm_body = email.message.Message()
         nm_body['Content-Type'] = "text/plain" #If you want HTML, repent your sins.
-        nm_body.set_payload("")
+        nm_body.set_payload("-- \n"+signature if signature!="" else "")
 
         #Attach body to message
         newmsg.attach(nm_body)
@@ -2058,6 +2059,7 @@ def main():
     global cachedir
     global c_state
     global password
+    global signature
     global nsync
     global ui
 
@@ -2106,6 +2108,12 @@ def main():
     
     #Read in settings
     password = open(os.path.join(cachedir,"settings")).readline().rstrip()
+
+    #Read in signature
+    if os.path.isfile(os.path.join(cachedir,"signature")):
+        signature = open(os.path.join(cachedir,"signature")).read().rstrip()
+    else:
+        signature = ""
 
     #Initial connection to server
     nsync = ClientNetSync()
