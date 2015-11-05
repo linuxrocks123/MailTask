@@ -1019,7 +1019,7 @@ class ClientState:
         
         if self.stack[-1][0]==ClientState.RELATED: #RELATED message view
             s_headers = nsync.cache["RELATED"][b_index-1][1]
-            relmID_to_delete = s_headers["Message-ID"]
+            relmID_to_delete = s_headers["Message-ID"].strip()
             newreferencelist = mt_utils.get_related_ids(self.stack[-2][1])
             index = gfind(newreferencelist,relmID_to_delete)
             if index==-1:
