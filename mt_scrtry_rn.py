@@ -223,7 +223,7 @@ def handle_msg(uidpath,rfc822):
             mt_utils.attach_payload(newtask,nt_body)
             newtask['Content-Type']="multipart/x.MailTask"
             newtask['Date']=email.utils.formatdate(localtime=True)
-            newtask['Subject'] = "New Task"
+            newtask['Subject'] = get_nick_from_header(msg['From'])+": "+msg['Subject'] if 'Subject' in msg and 'From' in msg else "New Task"
             newtask['X-MailTask-Type'] = "Checklist"
             newtask['X-MailTask-Completion-Status'] = "Incomplete"
             newtask['X-MailTask-Virgin'] = "Yes"
