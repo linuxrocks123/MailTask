@@ -24,11 +24,20 @@ import email.parser
 import email.utils
 from ontask_messages import *
 import os
+import mt_chronos
 import mt_utils
 from select import select
 import shutil
 import sys
 import time
+
+try:
+    import mt_gcal_sync
+    do_gcal = True
+    print "Google Calendar extension enabled"
+except ImportError:
+    do_gcal = False
+    print "Google Calendar extension disabled"
 
 ##l_timedep_tasks: uidpath->msg
 l_timedep_tasks = {}
@@ -162,6 +171,25 @@ def handle_msg(uidpath,rfc822):
             print "handle_msg: "+uidpath+" is from an ignored sender."
             sys.stdout.flush()
             return
+
+        #If we're doing the calendar thing, check for the codeword in the subject
+        if do_gcal and 'Subject' in msg and msg['Subject'].find(mt_gcal_sync.codeword)!=-1:
+            chronos_tuples = []
+            def scan_component(component):
+                result = mt_chronos.extract_calendar_event(component.get_payload(decode=True))
+                if result!=None:
+                    chronos_tuples.append(result)
+
+            try:
+                mt_utils.walk_attachments(msg,scan_component)
+                for entry in chronos_tuples:
+                    mt_gcal_sync.insert_gcal_event(entry)
+                return
+            except Exception as e:
+                print "ERROR: Attempted to schedule calendar event and failed; probable bug."
+                print "The exception: "+repr(e)
+                sys.stdout.flush()
+        
         #Okay, now, first check if there is a Task out there that refers to a Message-ID that is also referred to by this message
         task_mid = None
         if 'References' in msg:
@@ -395,8 +423,13 @@ def main():
     client.c_state = client.ClientState() #I no longer think this is needed, but just in case.
     client.cachedir = os.path.abspath(".")
     client.initialize_account_info()
-    client.password = open(os.path.join(client.cachedir,"settings")).readline().rstrip()
 
+    settings = open(os.path.join(client.cachedir,"settings"))
+    client.password = settings.readline().rstrip()
+
+    if do_gcal:
+        mt_gcal_sync.codeword = settings.readline().rstrip()        
+    
     msg_dict = Msg_Dict()
     nsync = client.ClientNetSync()
 
@@ -431,6 +464,8 @@ def main():
         folder_cache_add("Tasks",True)
 
     nsync.initialize_cache()
+    if do_gcal:
+        mt_gcal_sync.initialize()
 
     #email_info and ignored_senders
     initialize_email_info_and_ignored_senders_accounts()

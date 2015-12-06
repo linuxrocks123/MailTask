@@ -516,18 +516,7 @@ class ClientUI:
                 nsync.cache["ATTACHMENTS"].append((adate,adict))
             
             ##Walks subtree of attachments, appends all to "ATTACHMENTS" key in cache
-            def walk_attachments(submsg):
-                if not isinstance(submsg.get_payload(),str):
-                    for component in submsg.get_payload():
-                        if component.get_content_type().find("multipart/")==0:
-                            for subsubmsg in component.get_payload():
-                                walk_attachments(subsubmsg)
-                        else:
-                            process_single_submsg(component)
-                else:
-                    process_single_submsg(submsg)
-
-            walk_attachments(c_state.stack[-2][1])
+            mt_utils.walk_attachments(c_state.stack[-2][1],process_single_submsg,True)
             nsync.cache["ATTACHMENTS"].sort(key=lambda k: k[0],reverse=True)
 
             #Update browser
@@ -630,7 +619,10 @@ class ClientUI:
             return 1
         
         if c_state.stack[-1][0]==ClientState.ATTACHMENTS: #attachments
-            c_state.stack.append((ClientState.SUBMESSAGE,nsync.cache["ATTACHMENTS"][ui.mb_selected-1][1][None]))
+            attachment = nsync.cache["ATTACHMENTS"][ui.mb_selected-1][1][None]
+            c_state.stack.append((ClientState.SUBMESSAGE,attachment))
+            if not isinstance(attachment.get_payload(),str):
+                c_state.stack.append((ClientState.HEADERS,))            
         elif c_state.stack[-1][0]==ClientState.FOLDER: #folder
             uidpath = c_state.stack[0][1]+"/"+nsync.cache[c_state.stack[0][1]][ui.mb_selected-1][1]["UID"]
             c_state.stack.append((ClientState.MESSAGE,email.parser.Parser().parse(open(os.path.join(cachedir,uidpath))),uidpath))

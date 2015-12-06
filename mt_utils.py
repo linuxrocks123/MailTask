@@ -288,6 +288,17 @@ def search_cache(mid,cache):
             return record
     return None
 
+##Walk the body of a message and process each submessage
+def walk_attachments(submsg,process_single_submsg,force_decomp=False):
+    if not isinstance(submsg.get_payload(),str) and (force_decomp or submsg.get_content_type().find("multipart/")==0):
+        for component in submsg.get_payload():
+            if component.get_content_type().find("multipart/")==0:
+                for subsubmsg in component.get_payload():
+                    walk_attachments(subsubmsg,process_single_submsg,force_decomp)
+            else:
+                process_single_submsg(component)
+    else:
+        process_single_submsg(submsg)
 
 ##Gets MIME type of file
 # Uses magic if available, otherwise mimetypes
