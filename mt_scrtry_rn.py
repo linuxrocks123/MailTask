@@ -17,7 +17,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import client
-import cPickle
 import email
 import email.message
 import email.parser
@@ -29,6 +28,12 @@ from select import select
 import shutil
 import sys
 import time
+
+# Allow fallback
+try:
+    import cPickle as pickle
+except:
+    import pickle
 
 ##l_timedep_tasks: uidpath->msg
 l_timedep_tasks = {}
@@ -412,9 +417,9 @@ def main():
 
     #If we have a pickle, use it; otherwise, read in all emails and parse them (slow)
     if os.path.isfile(client.cachedir+"/client.pickle"):
-        nsync.cache = cPickle.load(open(client.cachedir+"/client.pickle","rb"))
+        nsync.cache = pickle.load(open(client.cachedir+"/client.pickle","rb"))
         if os.path.isfile(client.cachedir+"/l_timedep_tasks.pickle"):
-            l_timedep_tasks = cPickle.load(open(client.cachedir+"/l_timedep_tasks.pickle","rb"))    
+            l_timedep_tasks = pickle.load(open(client.cachedir+"/l_timedep_tasks.pickle","rb"))    
     else:
         #Add all account folders to cache
         for x in range(len(client.account_info)):
@@ -423,7 +428,7 @@ def main():
         folder_cache_add("Tasks")
 
     if os.path.isfile(client.cachedir+"/msg_dict.pickle"):
-        msg_dict = cPickle.load(open(client.cachedir+"/msg_dict.pickle","rb"))
+        msg_dict = pickle.load(open(client.cachedir+"/msg_dict.pickle","rb"))
     else:
         for x in range(len(client.account_info)):
             folder_cache_add(repr(x)+"/INBOX",True)
@@ -445,9 +450,9 @@ def main():
                     startup_status+=1
                 
                 if os.path.isfile(client.cachedir+"/FORCE_EXIT") or startup_status==3:
-                    cPickle.dump(nsync.cache,open(client.cachedir+"/client.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
-                    cPickle.dump(msg_dict,open(client.cachedir+"/msg_dict.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
-                    cPickle.dump(l_timedep_tasks,open(client.cachedir+"/l_timedep_tasks.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
+                    pickle.dump(nsync.cache,open(client.cachedir+"/client.pickle","wb"),pickle.HIGHEST_PROTOCOL)
+                    pickle.dump(msg_dict,open(client.cachedir+"/msg_dict.pickle","wb"),pickle.HIGHEST_PROTOCOL)
+                    pickle.dump(l_timedep_tasks,open(client.cachedir+"/l_timedep_tasks.pickle","wb"),pickle.HIGHEST_PROTOCOL)
                     if startup_status==3:
                         print "FATAL: We appear to have lost our cmessage connection."
                     sys.exit(0)
@@ -463,13 +468,13 @@ def main():
                     shutil.copyfile(client.cachedir+"/msg_dict.pickle",client.cachedir+"/msg_dict.pickle.bak")
                 if os.path.isfile(client.cachedir+"/l_timedep_tasks.pickle"):
                     shutil.copyfile(client.cachedir+"/l_timedep_tasks.pickle",client.cachedir+"/l_timedep_tasks.pickle.bak")
-                cPickle.dump(nsync.cache,open(client.cachedir+"/client.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
-                cPickle.dump(msg_dict,open(client.cachedir+"/msg_dict.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
-                cPickle.dump(l_timedep_tasks,open(client.cachedir+"/l_timedep_tasks.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
+                pickle.dump(nsync.cache,open(client.cachedir+"/client.pickle","wb"),pickle.HIGHEST_PROTOCOL)
+                pickle.dump(msg_dict,open(client.cachedir+"/msg_dict.pickle","wb"),pickle.HIGHEST_PROTOCOL)
+                pickle.dump(l_timedep_tasks,open(client.cachedir+"/l_timedep_tasks.pickle","wb"),pickle.HIGHEST_PROTOCOL)
     except Exception as e:
-        cPickle.dump(nsync.cache,open(client.cachedir+"/client.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
-        cPickle.dump(msg_dict,open(client.cachedir+"/msg_dict.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
-        cPickle.dump(l_timedep_tasks,open(client.cachedir+"/l_timedep_tasks.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
+        pickle.dump(nsync.cache,open(client.cachedir+"/client.pickle","wb"),pickle.HIGHEST_PROTOCOL)
+        pickle.dump(msg_dict,open(client.cachedir+"/msg_dict.pickle","wb"),pickle.HIGHEST_PROTOCOL)
+        pickle.dump(l_timedep_tasks,open(client.cachedir+"/l_timedep_tasks.pickle","wb"),pickle.HIGHEST_PROTOCOL)
         print "Failed with exception: "+repr(e)
         sys.stdout.flush()
         

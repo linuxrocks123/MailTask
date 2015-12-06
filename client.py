@@ -44,7 +44,10 @@ from ontask_messages import *
 
 import base64
 from copy import copy
-import cPickle
+try:
+    import cPickle as pickle
+except:
+    import pickle
 import email
 import email.message
 import email.parser
@@ -2128,7 +2131,7 @@ def main():
 
     #If we have a pickle, use it; otherwise, read in all emails and parse them (slow)
     if os.path.isfile(cachedir+"/client.pickle"):
-        nsync.cache = cPickle.load(open(cachedir+"/client.pickle","rb"))
+        nsync.cache = pickle.load(open(cachedir+"/client.pickle","rb"))
     else:
         #Add all account folders to cache
         for x in range(len(account_info)):
@@ -2165,7 +2168,7 @@ def main():
         nsync.cmessage_conn.flush()
 
         #Backup our cache to a pickle
-        cPickle.dump(nsync.cache,open(cachedir+"/client.pickle",'wb'),cPickle.HIGHEST_PROTOCOL)
+        pickle.dump(nsync.cache,open(cachedir+"/client.pickle",'wb'),pickle.HIGHEST_PROTOCOL)
 
 if __name__=="__main__":
     main()

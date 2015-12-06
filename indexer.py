@@ -17,10 +17,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import client
-
-import cPickle
 import os
 import sys
+try:
+    import cPickle as pickle
+except:
+    import pickle
 
 #Name of program and intro text
 print "MailTask Alpha: The Email Manager"
@@ -58,7 +60,7 @@ def folder_cache_add(folder):
 
 #If we have a pickle, use it; otherwise, read in all emails and parse them (slow)
 if os.path.isfile(client.cachedir+"/client.pickle"):
-    nsync.cache = cPickle.load(open(client.cachedir+"/client.pickle","rb"))
+    nsync.cache = pickle.load(open(client.cachedir+"/client.pickle","rb"))
 else:
     #Add all account folders to cache
     for x in range(len(client.account_info)):
@@ -66,4 +68,4 @@ else:
         folder_cache_add(repr(x)+"/Sent")
     folder_cache_add("Tasks")
 
-cPickle.dump(nsync.cache,open(client.cachedir+"/client.pickle",'w'),cPickle.HIGHEST_PROTOCOL)
+pickle.dump(nsync.cache,open(client.cachedir+"/client.pickle",'w'),pickle.HIGHEST_PROTOCOL)
