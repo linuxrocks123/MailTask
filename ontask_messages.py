@@ -16,16 +16,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-##Simple function to find nth occurrence of substring
 # (WHY is this not BUILT IN????)
 def find_nth_substring(needle,occurrence,haystack):
-    i=-1
-    for _ in range(occurrence):
-        i=i+1
-        i=haystack.find(needle,i)
-        if i==-1:
-            return -1
-    return i
+    """
+    Simple function to find nth occurrence of substring.  Not built in because
+    Greedo von Rossman the Bossman is a funky dude with a funky 'tude.
+    """
+    pos = -1
+    for _ in range(occurrence+1,1,-1):
+        pos = haystack.find(needle,pos+1)
+        if pos == -1: return pos
+
+    return pos
 
 class OnTask_Message:
     def __init__(self, header, body):
