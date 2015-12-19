@@ -159,6 +159,31 @@ def handle_msg(uidpath,rfc822):
         #Examine References header and update msg_dict
         msg_dict.process_msg(msg,uidpath)
 
+        #Handle Google Calendar Sync
+        try:
+            if do_gcal:
+                dinfo = None
+                gcal_id = msg['X-MailTask-GCalID']
+                subject_str = "MailTask: "+msg.get('Subject',"No Subject")
+                body_str = mt_utils.get_body(msg).get_payload()
+                if 'X-MailTask-Date-Info' in msg:
+                    dinfo = mt_utils.gtstfxmdis(msg['X-MailTask-Date-Info'])
+                    if len(dinfo)==1:
+                        dinfo = (dinfo[0],dinfo[0])
+
+                if not gcal_id and 'X-MailTask-Date-Info' in msg:
+                    gcal_id = mt_gcal_sync.insert_gcal_event((subject_str,body_str,dinfo[0],dinfo[1]))
+                    msg['X-MailTask-GCalID']=gcal_id
+                    task_revised = True
+                elif gcal_id and 'X-MailTask-Date-Info' not in msg:
+                    mt_gcal_sync.delete_gcal_event(gcal_id)
+                    del msg['X-MailTask-GCalID']
+                    task_revised = True
+                elif gcal_id and 'X-MailTask-Date-Info' in msg:
+                    mt_gcal_sync.update_gcal_event(gcal_id,(subject_str,body_str,dinfo[0],dinfo[1]))
+        except Exception as e:
+            print "WARNING: Google Calendar Error: "+e.message
+
         #If necessary, update task
         if task_revised:
             nsync.node_update(uidpath,msg.as_string())
@@ -251,7 +276,7 @@ def handle_msg(uidpath,rfc822):
             mt_utils.attach_payload(newtask,nt_body)
             newtask['Content-Type']="multipart/x.MailTask"
             newtask['Date']=email.utils.formatdate(localtime=True)
-            newtask['Subject'] = client.get_nick_from_header(msg['From'])+": "+msg['Subject'] if 'Subject' in msg and 'From' in msg else "New Task"
+            newtask['Subject'] = client.get_nick_from_header(msg['From'])+": "+msg['Subject'] if 'Subject' in msg and 'From' in msg and client.get_nick_from_header(msg['From']) else "New Task"
             newtask['X-MailTask-Type'] = "Checklist"
             newtask['X-MailTask-Completion-Status'] = "Incomplete"
             newtask['X-MailTask-Virgin'] = "Yes"
@@ -306,11 +331,14 @@ def server_synchronize():
                         break
 
             if cacheadd_necessary:
+                gcal_id = None
                 try: #if file already exists, we need to remove it from our memory and disk caches
                     os.stat(os.path.join(client.cachedir,uidpath))
                     print "In NODE-UPDATE-NOTIFY: deleting stale cache data"
                     sys.stdout.flush()
-                    msg_dict.delete_msg(email.parser.Parser().parse(open(os.path.join(client.cachedir,uidpath))),uidpath)
+                    msg = email.parser.Parser().parse(open(os.path.join(client.cachedir,uidpath)))
+                    gcal_id = msg['X-MailTask-GCalID']
+                    msg_dict.delete_msg(msg,uidpath)
                     nsync.remove_from_cache(uidpath)
                 except OSError:
                     pass
@@ -319,6 +347,11 @@ def server_synchronize():
                     sys.stdout.flush()
                     nsync.add_to_cache(uidpath,rfc822)
                     handle_msg(uidpath,rfc822) #Scan message, see if it's important
+                elif gcal_id and do_gcal:
+                    mt_gcal_sync.delete_gcal_event(gcal_id)
+
+            #Update last mod time
+            client.last_mod_time = modtime
 
         elif smessage.cmd_id=="FOLDER-INVALIDATE-NOTIFY":
             #Delete all files in cached folder
@@ -428,7 +461,13 @@ def main():
     client.password = settings.readline().rstrip()
 
     if do_gcal:
-        mt_gcal_sync.codeword = settings.readline().rstrip()        
+        mt_gcal_sync.codeword = settings.readline().rstrip()
+
+    try:
+        client.last_mod_time = int(settings.readline().rstrip())
+    except:
+        print "WARNING: no mod time in settings file; using 1/1/1970."
+        client.last_mod_time = 0
     
     msg_dict = Msg_Dict()
     nsync = client.ClientNetSync()
@@ -470,6 +509,17 @@ def main():
     #email_info and ignored_senders
     initialize_email_info_and_ignored_senders_accounts()
 
+    def dump_data():
+        cPickle.dump(nsync.cache,open(client.cachedir+"/client.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
+        cPickle.dump(msg_dict,open(client.cachedir+"/msg_dict.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
+        cPickle.dump(l_timedep_tasks,open(client.cachedir+"/l_timedep_tasks.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
+        settings = open(os.path.join(client.cachedir,"settings"),'w')
+        settings.write(client.password+"\n")
+        if do_gcal:
+            settings.write(mt_gcal_sync.codeword+"\n")
+        settings.write(repr(client.last_mod_time)+"\n")
+
+
     #Main loop
     last_timedep_check=0
     startup_status=0
@@ -480,9 +530,7 @@ def main():
                     startup_status+=1
                 
                 if os.path.isfile(client.cachedir+"/FORCE_EXIT") or startup_status==3:
-                    cPickle.dump(nsync.cache,open(client.cachedir+"/client.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
-                    cPickle.dump(msg_dict,open(client.cachedir+"/msg_dict.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
-                    cPickle.dump(l_timedep_tasks,open(client.cachedir+"/l_timedep_tasks.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
+                    dump_data()
                     if startup_status==3:
                         print "FATAL: We appear to have lost our cmessage connection."
                     sys.exit(0)
@@ -498,13 +546,9 @@ def main():
                     shutil.copyfile(client.cachedir+"/msg_dict.pickle",client.cachedir+"/msg_dict.pickle.bak")
                 if os.path.isfile(client.cachedir+"/l_timedep_tasks.pickle"):
                     shutil.copyfile(client.cachedir+"/l_timedep_tasks.pickle",client.cachedir+"/l_timedep_tasks.pickle.bak")
-                cPickle.dump(nsync.cache,open(client.cachedir+"/client.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
-                cPickle.dump(msg_dict,open(client.cachedir+"/msg_dict.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
-                cPickle.dump(l_timedep_tasks,open(client.cachedir+"/l_timedep_tasks.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
+                dump_data()
     except Exception as e:
-        cPickle.dump(nsync.cache,open(client.cachedir+"/client.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
-        cPickle.dump(msg_dict,open(client.cachedir+"/msg_dict.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
-        cPickle.dump(l_timedep_tasks,open(client.cachedir+"/l_timedep_tasks.pickle","wb"),cPickle.HIGHEST_PROTOCOL)
+        dump_data()
         print "Failed with exception: "+repr(e)
         sys.stdout.flush()
         

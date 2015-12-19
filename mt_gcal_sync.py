@@ -65,4 +65,12 @@ def initialize():
 
 ##Insert a calendar event from a tuple
 def insert_gcal_event(caltuple):
-    events.insert(calendarId="primary",body={"summary" : caltuple[0], "start" : {"dateTime" : datetime.datetime.utcfromtimestamp(caltuple[2]).isoformat()+'Z'},"end" : {"dateTime" : datetime.datetime.utcfromtimestamp(caltuple[3]).isoformat()+'Z'},"description" : caltuple[1]}).execute()
+    return events.insert(calendarId="primary",body={"summary" : caltuple[0], "start" : {"dateTime" : datetime.datetime.utcfromtimestamp(caltuple[2]).isoformat()+'Z'},"end" : {"dateTime" : datetime.datetime.utcfromtimestamp(caltuple[3]).isoformat()+'Z'},"description" : caltuple[1]}).execute()['id']
+
+##Update an existing calendar event, given its ID and Chronos tuple
+def update_gcal_event(ev_id,caltuple):
+    return events.update(calendarId="primary",eventId=ev_id,body={"summary" : caltuple[0], "start" : {"dateTime" : datetime.datetime.utcfromtimestamp(caltuple[2]).isoformat()+'Z'},"end" : {"dateTime" : datetime.datetime.utcfromtimestamp(caltuple[3]).isoformat()+'Z'},"description" : caltuple[1]}).execute()['id']
+
+##Delete a calendar event, given its ID.  Use caution.
+def delete_gcal_event(ev_id):
+    events.delete(calendarId="primary",eventId=ev_id).execute()

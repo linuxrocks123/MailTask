@@ -1841,11 +1841,11 @@ class ClientNetSync:
                 current_server_set = set(reply.body.split("\n")) if reply.body!="" else set()
 
                 #Delete old local files, deleted on server
-                for stale_item in cached_file_set.difference(current_server_set) if folder_name!="Tasks" else cached_file_set:
+                for stale_item in cached_file_set.difference(current_server_set):
                     self.remove_from_cache(folder_name+"/"+stale_item)
 
                 #Add uncached new files, created on server
-                for new_item in current_server_set.difference(cached_file_set) if folder_name!="Tasks" else current_server_set:
+                for new_item in current_server_set.difference(cached_file_set):
                     self.node_request(folder_name+"/"+new_item)
                 return None
             return f_2
@@ -1909,7 +1909,7 @@ class ClientNetSync:
                     continue
 
                 #CID-REQUEST is next
-                self.smessage_conn.write(OnTask_Message("CID-REQUEST","").get_message_string())
+                self.smessage_conn.write(OnTask_Message("CID-REQUEST",repr(last_mod_time)).get_message_string())
                 self.smessage_conn.flush()
 
                 #"CID-NOTIFY" from server
@@ -1956,6 +1956,7 @@ class ClientNetSync:
 # nsync.server_update_queue is a deque of pending client socket communiques
 def server_synchronize():
     global cachedir
+    global last_mod_time
     
     #Have we processed any messages?
     messages_processed = False
@@ -2004,6 +2005,9 @@ def server_synchronize():
                 if rfc822!="": #only add to cache if file would not be empty
                     nsync.add_to_cache(uidpath,rfc822)
 
+            #Update last mod time
+            last_mod_time = modtime
+
         elif smessage.cmd_id=="FOLDER-INVALIDATE-NOTIFY":
             #Delete all files in cached folder
             shutil.rmtree(os.path.join(cachedir,smessage.body)) #oh yeah this is secure yup
@@ -2050,6 +2054,7 @@ def server_synchronize():
 def main():
     global cachedir
     global c_state
+    global last_mod_time
     global password
     global signature
     global nsync
@@ -2099,7 +2104,13 @@ def main():
         pass
     
     #Read in settings
-    password = open(os.path.join(cachedir,"settings")).readline().rstrip()
+    settings_f = open(os.path.join(cachedir,"settings"))
+    password = settings_f.readline().rstrip()
+    try:
+        last_mod_time = int(settings_f.readline().rstrip())
+    except:
+        print "WARNING: no mod time in settings file; using 1/1/1970."
+        last_mod_time = 0
 
     #Read in signature
     if os.path.isfile(os.path.join(cachedir,"signature")):
@@ -2158,6 +2169,7 @@ def main():
 
         #Backup our cache to a pickle
         cPickle.dump(nsync.cache,open(cachedir+"/client.pickle",'wb'),cPickle.HIGHEST_PROTOCOL)
+        open(os.path.join(cachedir,"settings"),'w').write(password+"\n"+repr(last_mod_time)+"\n")
 
 if __name__=="__main__":
     main()

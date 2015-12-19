@@ -54,6 +54,15 @@ def browser_time(tstr,formatstr="%m/%d/%Y %H:%M"):
     else:
         return time.strftime(formatstr,time.localtime(0))
 
+##Given an X-MailTask-Date-Info string, return a 1-tuple of the epoch time deadline for a Deadline task, and a 2-tuple of the beginning epoch time and ending epoch time of a Meeting task.
+def gtstfxmdis(dinfo_str):
+    dinfo = dinfo_str.split("/")
+    if len(dinfo)==1: #(Deadline)
+        return (email.utils.mktime_tz(email.utils.parsedate_tz(dinfo[0])),)
+    else: #len(dinfo)==2 (Meeting)
+        return (email.utils.mktime_tz(email.utils.parsedate_tz(dinfo[0])),
+                email.utils.mktime_tz(email.utils.parsedate_tz(dinfo[1])))
+
 ##Given an email header, find all instances of commas in nicknames and turn them into
 # ASCII character Device Control 1 (0x11)
 def decomma(tstr):

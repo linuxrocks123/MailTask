@@ -34,8 +34,8 @@ MARK_MESSAGES_READ=True
 ##Global lock
 glock = threading.Lock()
 
-##Account Info dictionary
-account_info = {}
+##Account Info list
+account_info = []
 
 ##Initialize account info dictionary
 # Format of file: five lines per account
@@ -51,7 +51,7 @@ def initialize_account_info():
     lines = map(str.rstrip,lines)
     server_password = lines[0]
     for i in range(1,len(lines),5):
-        account_info[i/5]=(lines[i],lines[i+1],lines[i+2],lines[i+3],lines[i+4])
+        account_info.append((lines[i],lines[i+1],lines[i+2],lines[i+3],lines[i+4]))
 
 ##IMAP Connection Holder
 # List of sockets, index is account index
@@ -166,7 +166,7 @@ class client_service_thread:
         tosend = body[find_nth_substring('\n',2,body)+1:]
 
         #Create SMTP connection
-        if accid not in account_info:
+        if accid not in range(len(account_info)):
             self.socket.write(OnTask_Message("FECC-OFF","Illegal account ID").get_message_string())
             self.socket.close()
             raise IOError("Invalid account ID")
@@ -540,7 +540,7 @@ def main():
     socket.setdefaulttimeout(300)
 
     #Create one thread per IMAP connection to handle updates
-    for acct in account_info:
+    for acct in range(len(account_info)):
         imap_conns.append(None)
         imap_status.append(0)
         threading.Thread(target=imap_handler,args=account_info[acct][:3]+(acct,)).start()
@@ -635,6 +635,25 @@ def main():
 
             #Take the ACK
             ack = OnTask_Message.message_from_socket(conn_socket)
+
+            ##Local function to push updates to client
+            def push_updates_for_folder(folder):
+                for f in os.listdir(folder):
+                    fname = folder+"/"+f
+                    mtime = os.stat(fname)[8]
+                    if mtime > timestamp:
+                        conn_socket.write(OnTask_Message("NODE-UPDATE-NOTIFY",fname+"\n"+repr(mtime)+"\n"+open(fname).read()).get_message_string())
+                        conn_socket.flush()
+                        if OnTask_Message.message_from_socket(conn_socket).cmd_id!="ACK":
+                            raise IOError("Protocol Error.")
+            
+            #If the client passed in an update timestamp, deal with it here.
+            if req.body!="":
+                timestamp = int(req.body)
+                for i in range(len(account_info)):
+                    for folder in ('INBOX','Sent'):
+                        push_updates_for_folder(repr(i)+"/"+folder)
+                push_updates_for_folder("Tasks")
         except:
             pass
 
