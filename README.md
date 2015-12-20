@@ -37,7 +37,7 @@ accounts you intend to use with MailTask in that directory.  You then
 create the Tasks folder as well as `*/INBOX` and `*/Sent`, where `*` is
 every number from 0 up to but not including the number of accounts you
 put in `ACCOUNT_INFO`.  You should also create an empty file called
-`ADDRESSBOOK` and a `Tasks/BLACKHOLE` file containing roughly the
+`ADDRESSBOOK` and a `Tasks/BLACKHOLE` file containing exactly the
 following:
 ```
 Content-Type: multipart/x.MailTask;
