@@ -1594,7 +1594,7 @@ class ClientNetSync:
         self.folder_update_req("Tasks")
 
     ##add_to_cache: add a message or task to our local client cache, by default both in-memory and on-disk
-    def add_to_cache(self,filename,contents,add_to_disk=True):        
+    def add_to_cache(self,filename,contents,add_to_disk=True,deftime=0):
         if add_to_disk:
             open(os.path.join(cachedir,filename),'w').write(contents) #disk cache
 
@@ -1605,7 +1605,7 @@ class ClientNetSync:
         msg = email.parser.Parser().parsestr(contents)
         msgdict = CaseInsensitiveDict(msg.items())
         msgdict["UID"] = tokens[2]
-        msgtime = 0
+        msgtime = deftime
         if "Date" in msg:
             tztmt = email.utils.parsedate_tz(msg["Date"])
             if tztmt!=None:
@@ -1810,7 +1810,7 @@ class ClientNetSync:
                     return f_1
 
                 #If we called this function, we must know we need the data from it in the cache somehow.
-                self.add_to_cache(filename,reply.body)
+                self.add_to_cache(filename,reply.body,True,int(time.time()))
                 return None
             return f_2
         self.server_update_queue.append(f_1)
@@ -1909,7 +1909,7 @@ class ClientNetSync:
                     continue
 
                 #CID-REQUEST is next
-                self.smessage_conn.write(OnTask_Message("CID-REQUEST",repr(last_mod_time)).get_message_string())
+                self.smessage_conn.write(OnTask_Message("CID-REQUEST",repr(last_mod_time) if last_mod_time else "").get_message_string())
                 self.smessage_conn.flush()
 
                 #"CID-NOTIFY" from server
@@ -2003,7 +2003,7 @@ def server_synchronize():
                 except OSError:
                     pass
                 if rfc822!="": #only add to cache if file would not be empty
-                    nsync.add_to_cache(uidpath,rfc822)
+                    nsync.add_to_cache(uidpath,rfc822,True,modtime)
 
             #Update last mod time
             last_mod_time = modtime

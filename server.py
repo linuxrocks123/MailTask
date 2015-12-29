@@ -402,9 +402,10 @@ def imap_handler(username,password,server,status_index):
                         open(repr(status_index)+"/"+folder+"/"+uid,'w').write(downloaded_msg)
 
                         #Notify clients
+                        mtime = repr(int(time.time()))
                         for server_socket in server_notify.items():
                             try:
-                                server_socket[1].write(OnTask_Message("NODE-UPDATE-NOTIFY",repr(status_index)+"/"+folder+"/"+uid+"\n0\n"+downloaded_msg).get_message_string())
+                                server_socket[1].write(OnTask_Message("NODE-UPDATE-NOTIFY",repr(status_index)+"/"+folder+"/"+uid+"\n"+mtime+"\n"+downloaded_msg).get_message_string())
                                 server_socket[1].flush()
                                 if OnTask_Message.message_from_socket(server_socket[1]).cmd_id!="ACK":
                                     raise IOError("Protocol error.")

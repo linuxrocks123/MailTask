@@ -95,7 +95,7 @@ def get_message_id(msg,folder):
         return msg['Message-ID'].replace(' ','').replace('\t','').replace('\r','').replace('\n','')
     else: #generate nonmime-id
         sanitized_folder=folder.replace('/','-')
-        return "<NONMIME-TimestampID-"+repr(int(email.utils.mktime_tz(email.utils.parsedate(msg["Date"]))))+"@"+sanitized_folder+".mailtask"
+        return "<NONMIME-"+base64.b32encode(repr(hash(msg.as_string())))+"@"+sanitized_folder+".mailtask"
 
 ##Generate a unique Message-ID for given message
 def gen_message_id(msg,params):

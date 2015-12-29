@@ -86,7 +86,7 @@ class Msg_Dict:
 
     ##Use the stale cache data to remove a deleted or modified message's references from the dictionary
     def delete_msg(self,msg,uidpath):
-        if 'Message-ID' in msg:
+        if 'Message-ID' in msg and msg['Message-ID'] in self.uid_lookup_dict:
             del self.uid_lookup_dict[msg['Message-ID']]
         if 'References' in msg:
             #Unlike for normal headers, we must sanitize References differently:
