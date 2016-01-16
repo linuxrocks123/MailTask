@@ -303,7 +303,7 @@ def walk_attachments(submsg,process_single_submsg,force_decomp=False):
         for component in submsg.get_payload():
             if component.get_content_type().find("multipart/")==0:
                 for subsubmsg in component.get_payload():
-                    walk_attachments(subsubmsg,process_single_submsg,force_decomp)
+                    walk_attachments(subsubmsg,process_single_submsg)
             else:
                 process_single_submsg(component)
     else:
