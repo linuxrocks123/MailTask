@@ -370,7 +370,7 @@ def server_synchronize():
             #Disconnect/reconnect after notifying user of bug
             print "Server terminated connection and indicated protocol error:\n\n"+smessage.body
             sys.stdout.flush()
-            nsync.connmanager()
+            raise Exception("FECC-OFF received from server")
 
         #Send ACK message to server
         nsync.smessage_conn.write(OnTask_Message("ACK","").get_message_string())
@@ -522,7 +522,7 @@ def main():
 
     #Main loop
     last_timedep_check=0
-    startup_status=0
+    startup_status=2
     try:
         while True:
             while server_synchronize():
