@@ -1356,6 +1356,23 @@ class ClientState:
         self.clipboard = ClientState.Clipboard(ClientState.Clipboard.SUBMESSAGE,msg)
         return 1
 
+    ##Download an attachment
+    def download_attachment(self):
+        c_index = ui.main_browser.value()
+        if not c_index or self.stack[-1][0]!=ClientState.ATTACHMENTS:
+            return 1
+        msg = nsync.cache["ATTACHMENTS"][c_index-1][1][None]
+        
+        fname = fl_file_chooser("Select a name for the download","*","")
+        if fname==None:
+            return 1
+        try:
+            output = os.fdopen(os.open(fname,os.O_WRONLY | os.O_CREAT),"w")
+        except IOError:
+            fl_alert("Failed to open specified file for writing")
+        output.write(msg.get_payload(decode=True))
+        return 1
+
     ##Create a new task.
     # This will not work unless you are in Task list view.
     def new_task(self):
@@ -1534,6 +1551,7 @@ class ClientState:
                             (FL_CTRL,ord('r')) : c_state.make_reply_all,
                             (FL_CTRL,ord('j')) : c_state.make_reply_sender,
                             (FL_CTRL,ord('a')) : c_state.load_file_to_clipboard,
+                            (FL_CTRL,ord('d')) : c_state.download_attachment,
                             (FL_CTRL,ord('n')) : c_state.new_task,
                             (FL_ALT,ord('v')) : c_state.toggle_completed_task_visibility,
                             (FL_ALT,ord('c')) : c_state.toggle_current_task_completion,
