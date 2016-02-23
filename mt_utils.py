@@ -123,7 +123,7 @@ def rfc822_encapsulate(msg,filename=""):
                 splitpoint=i
                 break
         for i in range(splitpoint):
-            if lines[i].find(header+": ")==0:
+            if lines[i].lower().find((header+": ").lower())==0:
                 lines.insert(splitpoint,lines[i])
                 del lines[i]
                 #Handle multi-line Content-Type/Content-Transfer-Encoding headers
@@ -133,7 +133,7 @@ def rfc822_encapsulate(msg,filename=""):
                 break
     
     for i in range(len(lines)):
-        if lines[i].find("Content-Type: ")==0:
+        if lines[i].lower().find("Content-Type: ".lower())==0:
             lines.insert(i,"")
             break
     return email.parser.Parser().parsestr('Content-Type: message/rfc822'+('; name="'+filename+'"' if filename!="" else "")+'\n'+"\n".join(lines))
@@ -180,11 +180,11 @@ def unrfc822(message):
     insert_idx = -1
     fields_to_move = set(["Content-Type","MIME-Version"])
     for i in range(len(msg_parts)):
-        if msg_parts[i].find("Message-ID")==0 and insert_idx==-1:
+        if msg_parts[i].lower().find("Message-ID".lower())==0 and insert_idx==-1:
             insert_idx=i
         move_this_line = False
         for field in fields_to_move:
-            if msg_parts[i].find(field)==0:
+            if msg_parts[i].lower().find(field.lower())==0:
                 move_this_line = True
                 fields_to_move.remove(field)
                 break
