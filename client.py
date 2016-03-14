@@ -1504,6 +1504,10 @@ class ClientState:
                 if mt_utils.find(old_addrbook,newval)!=-1:
                     return old_val
 
+                #Check if we'll be interfering with sender accounts
+                if newval in map(get_email_addr_from_header,account_info):
+                    return old_val
+
                 #Perform the addition
                 if nick not in address_book:
                     return old_val+nick+"\n"+newval+"\n"
