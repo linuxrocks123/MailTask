@@ -123,14 +123,17 @@ def handle_msg(uidpath,rfc822):
         sys.stdout.flush()
         return
 
-    #Ignore specified accounts
-    for acct in ignored_accounts:
-        if uidpath.find(acct+"/")==0:
-            print "In ignored account: done."
-            sys.stdout.flush()
-            return
-    
     msg = email.parser.Parser().parsestr(rfc822)
+    
+    #Ignore specified accounts, unless sender in unignored_senders
+    if 'From' in msg and client.get_email_addr_from_header(msg['From']) not in unignored_senders and client.get_nick_from_header(msg['From']) not in unignored_senders:
+        for acct in ignored_accounts:
+            if uidpath.find(acct+"/")==0:
+                print "In ignored account: done."
+                sys.stdout.flush()
+                return
+    else:
+        print "Sender in unignored_senders: skipping ignored_accounts check."
     
     #We need to handle an updated Task, following protocol
     if uidpath.find("Tasks")==0:
@@ -400,10 +403,12 @@ def initialize_email_info_and_ignored_senders_accounts():
     global email_info
     global ignored_senders
     global ignored_accounts
+    global unignored_senders
 
     email_info={}
     ignored_senders=set()
     ignored_accounts=set()
+    unignored_senders=set()
 
     f_email_info = open("email_info.txt")
     try:
@@ -417,6 +422,8 @@ def initialize_email_info_and_ignored_senders_accounts():
         ignored_senders.add(line)
     for line in map(str.rstrip,open("ignored_accounts.txt").readlines()):
         ignored_accounts.add(line)
+    for line in map(str.rstrip,open("unignored_senders.txt").readlines()):
+        unignored_senders.add(line)
 
 def do_timedep_check():
     for entry in l_timedep_tasks.items():

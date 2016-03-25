@@ -27,8 +27,8 @@ import tempfile
 
 #Note: FLTK 1.1 seems to use ISO-8859-1 as its native encoding.
 #      FLTK 1.3 changes this to UTF-8.
-FLTK_ENCODING="ISO-8859-1"
-#FLTK_ENCODING="UTF-8"
+#FLTK_ENCODING="ISO-8859-1"
+FLTK_ENCODING="UTF-8"
 
 def text_plain(submsg,mime_encoding):
     return submsg.get_payload(decode=True).decode(encoding=mime_encoding,errors="replace").encode(encoding=FLTK_ENCODING,errors="replace")
