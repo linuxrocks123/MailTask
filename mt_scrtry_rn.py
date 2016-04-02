@@ -133,7 +133,7 @@ def handle_msg(uidpath,rfc822):
                 sys.stdout.flush()
                 return
     else:
-        print "Sender in unignored_senders: skipping ignored_accounts check."
+        print "Sender in unignored_senders or not in ignored account."
     
     #We need to handle an updated Task, following protocol
     if uidpath.find("Tasks")==0:
