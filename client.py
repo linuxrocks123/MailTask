@@ -570,7 +570,7 @@ class ClientUI:
             #Update browser
             ui.main_browser.clear()
             for entry_ in nsync.cache["RELATED"]:
-                entry = CaseInsensitiveDefaultDict(lambda: None, entry_[1])
+                entry = CaseInsensitiveDefaultDict(lambda: "", entry_[1])
                 ui.main_browser.add("@."+entry["Subject"]+"\t@."+entry["From"]+"\t@."+entry["Date"])
             if ui.mb_selected<=len(nsync.cache["RELATED"]):
                 ui.main_browser.select(ui.mb_selected)
