@@ -42,9 +42,6 @@ except ImportError:
 ##l_timedep_tasks: uidpath->msg
 l_timedep_tasks = {}
 
-##UIDPaths of entities that we've modified; necessary to avoid feedback loop due to reflections
-mirror = set()
-
 class Msg_Dict:
     def __init__(self):
         ##mid_dict: Format: { "Message-ID" : set(["reverse_ref_mid1", ...]), ... }
@@ -106,20 +103,18 @@ class Msg_Dict:
 
 ##handle_msg: analyze a new message and, if it's important,
 #             act in whatever way is appropriate
-def handle_msg(uidpath,rfc822):
+def handle_msg(uidpath,rfc822,mirror_flag):
     global l_timedep_tasks
 
     print "In handle_msg for "+uidpath
     sys.stdout.flush()
     
     #Ignore reflections except for MID dictionary processing
-    if uidpath in mirror:
+    if mirror_flag:
         print "Found in mirror."
         #Examine References header and update msg_dict
         msg_dict.process_msg(email.parser.Parser().parsestr(rfc822),uidpath)
-        print "removing from mirror: done."
-        mirror.remove(uidpath)
-        print "mirror: "+repr(mirror)
+        print "mirror: "+repr(nsync.mirror)
         sys.stdout.flush()
         return
 
@@ -190,9 +185,8 @@ def handle_msg(uidpath,rfc822):
         #If necessary, update task
         if task_revised:
             nsync.node_update(uidpath,msg.as_string())
-            mirror.add(uidpath)
             print "handle_msg: update "+uidpath+" and add to mirror"
-            print "mirror: "+repr(mirror)
+            print "mirror: "+repr(nsync.mirror)
             sys.stdout.flush()
     else: #not a Task: scan email headers and, if appropriate, create a new related task or update an existing one
         if 'From' not in msg or 'Message-ID' not in msg or client.get_email_addr_from_header(msg['From']) in ignored_senders:
@@ -263,7 +257,6 @@ def handle_msg(uidpath,rfc822):
             task_msg['X-MailTask-Completion-Status']="Incomplete"
             
             nsync.node_update(task_mid,task_msg.as_string())
-            mirror.add(task_mid)
         else: #No existing task, so we must make one
             print "handle_msg: Creating new task referencing MID "+msg['Message-ID']
             sys.stdout.flush()
@@ -315,7 +308,8 @@ def server_synchronize():
 
             print "NODE-UPDATE-NOTIFY: "+uidpath
             sys.stdout.flush()
-            
+
+            mirror_flag = nsync.mirror_remove(uidpath)
             cacheadd_necessary = True
 
             #Special case the address book
@@ -349,7 +343,7 @@ def server_synchronize():
                     print "In NODE-UPDATE-NOTIFY: adding to cache"
                     sys.stdout.flush()
                     nsync.add_to_cache(uidpath,rfc822)
-                    handle_msg(uidpath,rfc822) #Scan message, see if it's important
+                    handle_msg(uidpath,rfc822,mirror_flag) #Scan message, see if it's important
                 elif gcal_id and do_gcal:
                     mt_gcal_sync.delete_gcal_event(gcal_id)
 
