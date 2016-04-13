@@ -2025,6 +2025,8 @@ def server_synchronize():
                 except OSError:
                     pass
                 if rfc822!="": #only add to cache if file would not be empty
+                    if len(c_state.stack) > 1 and c_state.stack[1][0]==MESSAGE and c_state.stack[1][2]==uidpath:
+                        fl_alert("Warning: If you modify this task, your update will quash an update from the server you have not yet seen.  You are advised to escape back to the task list and discard any edits.")
                     nsync.add_to_cache(uidpath,rfc822,True,modtime)
 
             #Update last mod time
