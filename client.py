@@ -2187,8 +2187,8 @@ def main():
     #Sole thread runs GUI loop and updates cache from socket between wait() calls
     try:
         while ui.window.shown():
-            Fl_wait(5)
-
+            Fl_wait(5 if len(nsync.server_update_queue) <= 2 else 0)
+            
             #server_synchronize run repeatedly as long as something processed.
             #left_browser_callback should also be run if server_synchronize
             #did anything, but only once in the event it is run multiple times.
