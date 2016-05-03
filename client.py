@@ -63,7 +63,7 @@ gfind = mt_utils.find
 CaseInsensitiveList = mt_utils.CaseInsensitiveList
 
 ##To use in user agent
-PROG_VERSION_STRING="MailTask/20151002"
+PROG_VERSION_STRING="MailTask/20160503"
 
 ##Constant tuple containing all user-modifiable headers.
 # Other headers are ignored.
@@ -1877,11 +1877,11 @@ class ClientNetSync:
                 current_server_set = set(reply.body.split("\n")) if reply.body!="" else set()
 
                 #Delete old local files, deleted on server
-                for stale_item in cached_file_set.difference(current_server_set):
+                for stale_item in cached_file_set.difference(current_server_set) if folder_name!="Tasks" or last_mod_time else cached_file_set:
                     self.remove_from_cache(folder_name+"/"+stale_item)
 
                 #Add uncached new files, created on server
-                for new_item in current_server_set.difference(cached_file_set):
+                for new_item in current_server_set.difference(cached_file_set) if folder_name!="Tasks" or last_mod_time else current_server_set:
                     self.node_request(folder_name+"/"+new_item)
                 return None
             return f_2
@@ -1919,6 +1919,9 @@ class ClientNetSync:
         while not connected:
             try:
                 #Connect to server, set up client sockets
+
+                #Clear update queue
+                self.server_update_queue = deque()
 
                 #Server socket
                 self.smessage_conn = socket.socket()
@@ -1972,6 +1975,7 @@ class ClientNetSync:
                 #This must be done using queue: server may block otherwise
                 self.cid_info(cid)
                 connected = True
+
             except:
                 try:
                     self.smessage_conn.write(OnTask_Message("FECC-OFF","Protocol error").get_message_string())
@@ -2060,8 +2064,9 @@ def server_synchronize():
 
         elif smessage.cmd_id=="FECC-OFF":
             #Disconnect/reconnect after notifying user of bug
-            fl_alert("Server terminated connection and indicated protocol error:\n\n"+smessage.body+"\n\nClick OK to reconnect.")
+            print "*CONNECTION FAILURE*: Server terminated connection and indicated protocol error:\n\n"+smessage.body
             nsync.connmanager()
+            nsync.initialize_cache()
 
         #Send ACK message to server
         nsync.smessage_conn.write(OnTask_Message("ACK","").get_message_string())
@@ -2201,6 +2206,7 @@ def main():
                     run_lb_callback = False
             except IOError:
                 nsync.connmanager()
+                nsync.initialize_cache()
     finally:
         #End of program.  Sign off.
         nsync.cmessage_conn.write(OnTask_Message("SIGN-OFF","").get_message_string())
