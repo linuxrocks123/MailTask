@@ -625,11 +625,19 @@ class ClientUI:
                 c_state.stack.append((ClientState.HEADERS,))            
         elif c_state.stack[-1][0]==ClientState.FOLDER: #folder
             uidpath = c_state.stack[0][1]+"/"+nsync.cache[c_state.stack[0][1]][ui.mb_selected-1][1]["UID"]
-            c_state.stack.append((ClientState.MESSAGE,email.parser.Parser().parse(open(os.path.join(cachedir,uidpath))),uidpath))
+            try:
+                c_state.stack.append((ClientState.MESSAGE,email.parser.Parser().parse(open(os.path.join(cachedir,uidpath))),uidpath))
+            except OSError:
+                fl_alert("Message file does not exist on disk!  Your cache may be out-of-date.")
+                return 1
             c_state.stack.append((ClientState.HEADERS,))
         elif c_state.stack[-1][0]==ClientState.RELATED: #RELATED view
             uidpath = nsync.cache["RELATED"][ui.mb_selected-1][1]["FOLDER"]+"/"+nsync.cache["RELATED"][ui.mb_selected-1][1]["UID"]
-            c_state.stack.append((ClientState.MESSAGE,email.parser.Parser().parse(open(os.path.join(cachedir,uidpath))),uidpath))
+            try:
+                c_state.stack.append((ClientState.MESSAGE,email.parser.Parser().parse(open(os.path.join(cachedir,uidpath))),uidpath))
+            except OSError:
+                fl_alert("Message file does not exist on disk!  Your cache may be out-of-date.")
+                return 1
             c_state.stack.append((ClientState.HEADERS,))
         elif c_state.stack[-1][0]==ClientState.DRAFTS: #DRAFTS view
             c_state.stack.append((ClientState.SUBMESSAGE,nsync.cache["DRAFTS"][ui.mb_selected-1][1][None]))
