@@ -627,7 +627,7 @@ class ClientUI:
             uidpath = c_state.stack[0][1]+"/"+nsync.cache[c_state.stack[0][1]][ui.mb_selected-1][1]["UID"]
             try:
                 c_state.stack.append((ClientState.MESSAGE,email.parser.Parser().parse(open(os.path.join(cachedir,uidpath))),uidpath))
-            except OSError:
+            except IOError,OSError:
                 fl_alert("Message file does not exist on disk!  Your cache may be out-of-date.")
                 return 1
             c_state.stack.append((ClientState.HEADERS,))
@@ -635,7 +635,7 @@ class ClientUI:
             uidpath = nsync.cache["RELATED"][ui.mb_selected-1][1]["FOLDER"]+"/"+nsync.cache["RELATED"][ui.mb_selected-1][1]["UID"]
             try:
                 c_state.stack.append((ClientState.MESSAGE,email.parser.Parser().parse(open(os.path.join(cachedir,uidpath))),uidpath))
-            except OSError:
+            except IOError,OSError:
                 fl_alert("Message file does not exist on disk!  Your cache may be out-of-date.")
                 return 1
             c_state.stack.append((ClientState.HEADERS,))
@@ -2049,10 +2049,7 @@ def server_synchronize():
                         break
 
             if cacheadd_necessary:
-                try: #if file already exists, we need to remove it from our memory and disk caches
-                    nsync.remove_from_cache(uidpath)
-                except OSError:
-                    pass
+                nsync.remove_from_cache(uidpath)
                 if rfc822!="": #only add to cache if file would not be empty
                     if len(c_state.stack) > 1 and c_state.stack[1][0]==ClientState.MESSAGE and c_state.stack[1][2]==uidpath and not mirror_flag:
                         fl_alert("Warning: If you modify this task, your update will quash an update from the server you have not yet seen.  You are advised to escape back to the task list and discard any edits.")
