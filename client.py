@@ -1685,7 +1685,10 @@ class ClientNetSync:
                 break
 
         #Delete from disk
-        os.remove(os.path.join(cachedir,filename))
+        try:
+            os.remove(os.path.join(cachedir,filename))
+        except OSError: #maybe our client.pickle was out of date
+            pass
     
     ##fatal_error_cancel_connection: abruptly sever connections to server
     def fatal_error_cancel_connection(self):

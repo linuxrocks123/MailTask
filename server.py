@@ -117,7 +117,10 @@ class client_service_thread:
 
             #Empty body means we're deleting the file
             if find_nth_substring('\n',2,body)+1 == len(body):
-                os.remove(line0)
+                try:
+                    os.remove(line0)
+                except OSError: #in case file already deleted
+                    pass
             else:
                 filestore = open(line0,'w')
                 rfc822 = body[find_nth_substring('\n',2,body)+1:]
