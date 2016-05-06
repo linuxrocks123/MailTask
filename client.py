@@ -2197,8 +2197,14 @@ def main():
     nsync.initialize_cache()
 
     #Sole thread runs GUI loop and updates cache from socket between wait() calls
+    last_sync_time = time.time()
     try:
         while ui.window.shown():
+            if time.time() - last_sync_time > 300:
+                cPickle.dump(nsync.cache,open(cachedir+"/client.pickle",'wb'),cPickle.HIGHEST_PROTOCOL)
+                open(os.path.join(cachedir,"settings"),'w').write(password+"\n"+repr(last_mod_time)+"\n")
+                last_sync_time = time.time()
+
             Fl_wait(5 if len(nsync.server_update_queue) <= 2 else 0)
             
             #server_synchronize run repeatedly as long as something processed.
