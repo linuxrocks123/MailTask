@@ -2042,7 +2042,6 @@ def server_synchronize():
 
             if cacheadd_necessary:
                 try: #if file already exists, we need to remove it from our memory and disk caches
-                    os.stat(os.path.join(cachedir,uidpath))
                     nsync.remove_from_cache(uidpath)
                 except OSError:
                     pass
