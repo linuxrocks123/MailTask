@@ -66,10 +66,12 @@ client, but it automatically creates tasks based on incoming emails,
 marks tasks done when they are finished, and can be configured to
 ignore certain accounts or folders.
 
-Be aware that the server will mark all emails in an account as read
-when it first runs.  Be also aware that it will take a VERY long time
-to download all emails the first time a client is run.  For large
-accounts, it may be necessary to manually copy over the server's
+Be aware that, by default, the server will mark all emails in an
+account as read when it first runs.  You can change this behavior by
+changing the line `MARK_MESSAGES_READ=True` in server.py to
+`MARK_MESSAGES_READ=False`.  Be also aware that it will take a VERY
+long time to download all emails the first time a client is run.  For
+large accounts, it may be necessary to manually copy over the server's
 downloaded emails in these cases (contained in the `*/{INBOX,Sent}`
 folders).
 
