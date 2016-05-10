@@ -2008,6 +2008,7 @@ class ClientNetSync:
 def server_synchronize():
     global cachedir
     global last_mod_time
+    global sync_mod_time
     
     #Have we processed any messages?
     messages_processed = False
@@ -2057,6 +2058,8 @@ def server_synchronize():
 
             #Update last mod time
             last_mod_time = modtime
+            if not mirror_flag:
+                sync_mod_time = last_mod_time
 
         elif smessage.cmd_id=="FOLDER-INVALIDATE-NOTIFY":
             #Delete all files in cached folder
@@ -2106,6 +2109,7 @@ def main():
     global cachedir
     global c_state
     global last_mod_time
+    global sync_mod_time
     global password
     global signature
     global nsync
@@ -2162,6 +2166,7 @@ def main():
     except:
         print "WARNING: no mod time in settings file; using 1/1/1970."
         last_mod_time = 0
+    sync_mod_time = last_mod_time
 
     #Read in signature
     if os.path.isfile(os.path.join(cachedir,"signature")):
@@ -2198,11 +2203,14 @@ def main():
 
     #Sole thread runs GUI loop and updates cache from socket between wait() calls
     last_sync_time = time.time()
+    last_sync_mod_time = sync_mod_time
     try:
         while ui.window.shown():
-            if time.time() - last_sync_time > 300:
-                cPickle.dump(nsync.cache,open(cachedir+"/client.pickle",'wb'),cPickle.HIGHEST_PROTOCOL)
-                open(os.path.join(cachedir,"settings"),'w').write(password+"\n"+repr(last_mod_time)+"\n")
+            if time.time() - last_sync_time > 1800:
+                if last_sync_mod_time!=sync_mod_time:
+                    cPickle.dump(nsync.cache,open(cachedir+"/client.pickle",'wb'),cPickle.HIGHEST_PROTOCOL)
+                    open(os.path.join(cachedir,"settings"),'w').write(password+"\n"+repr(last_mod_time)+"\n")
+                    last_sync_mod_time = sync_mod_time
                 last_sync_time = time.time()
 
             Fl_wait(5 if len(nsync.server_update_queue) <= 2 else 0)
