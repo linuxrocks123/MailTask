@@ -745,6 +745,7 @@ class ClientState:
         UIDPATH=0
         TRUESTRING=1
         SUBMESSAGE=2
+        TASKPATH=3
         
         def __init__(self,typ,val):
             self.type = typ
@@ -948,7 +949,9 @@ class ClientState:
             self.clipboard = ClientState.Clipboard(ClientState.Clipboard.TRUESTRING,ui.main_buffer.text())
         elif self.stack[-1][0]==ClientState.ATTACHMENTS: #We are viewing attachments
             self.clipboard = ClientState.Clipboard(ClientState.Clipboard.SUBMESSAGE,nsync.cache["ATTACHMENTS"][c_index-1][1][None])
-        elif self.stack[-1][0]==ClientState.FOLDER: #folder view
+        elif self.stack[-1][0]==ClientState.FOLDER and self.stack[-1][1]=="Tasks": #task copy
+            self.clipboard = ClientState.Clipboard(ClientState.Clipboard.TASKPATH,mt_utils.get_related_ids(nsync.cache[self.stack[0][1]][c_index-1][1]))
+        elif self.stack[-1][0]==ClientState.FOLDER: #folder view, non task
             self.clipboard = ClientState.Clipboard(ClientState.Clipboard.UIDPATH,self.stack[0][1]+"/"+nsync.cache[self.stack[0][1]][c_index-1][1]["UID"])
         else: #Viewing non-header component of message
             self.clipboard = ClientState.Clipboard(ClientState.Clipboard.SUBMESSAGE,self.stack[-1][1])
@@ -984,6 +987,15 @@ class ClientState:
                 
             #refresh screen to show new message in related
             ui.left_browser_callback(ui.left_browser)
+        elif self.clipboard.type==ClientState.Clipboard.TASKPATH:
+            if self.stack[0][1]!="Tasks" or len(self.stack)!=3 or self.stack[-1][0]!=ClientState.RELATED:
+                fl_alert("Can only paste task to Related view.")
+                return 0
+
+            rel_ids = mt_utils.get_related_ids(self.stack[-2][1])
+            rel_ids.extend(self.clipboard.value)
+            mt_utils.set_related_ids(self.stack[-2][1],rel_ids)
+            nsync.node_update(self.get_stacktop_uidpath(),self.get_stacktop_msg().as_string())
         else: #clipboard is SUBMESSAGE
             if self.stack[-1][0]==ClientState.RELATED: #RELATED message view
                 fl_alert("Cannot paste submessage to related message view.")
