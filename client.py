@@ -474,7 +474,15 @@ class ClientUI:
                             fmatstr2 = fmatstr2.rstrip()
                             
                             dinfo=time.strftime(fmatstr1,mtime_s1)+"-"+time.strftime(fmatstr2,mtime_s2)
-                        ui.main_browser.add("@."+entry[1]['Subject']+"\t@."+tasktype+"\t@."+dinfo)
+
+                        #Highlight tasks with unsent drafts in purple,
+                        #or else I'd doubt my commitment to Sparkle Motion.
+                        prefix = "@."
+                        for submsg in email.parser.Parser().parse(open(os.path.join(cachedir,"Tasks/"+entry[1]["UID"]))).get_payload():
+                            if submsg.get_content_type()=="message/rfc822":
+                                prefix = "@C"+repr(FL_DARK_MAGENTA)+"@."
+                                break
+                        ui.main_browser.add(prefix+entry[1]['Subject']+"\t@."+tasktype+"\t@."+dinfo)
             else: #non-Task folder
                 for entry in nsync.cache[c_state.stack[-1][1]]:
                     if mb_counter>=horizon:
