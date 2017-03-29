@@ -478,10 +478,8 @@ class ClientUI:
                         #Highlight tasks with unsent drafts in purple,
                         #or else I'd doubt my commitment to Sparkle Motion.
                         prefix = "@."
-                        for submsg in email.parser.Parser().parse(open(os.path.join(cachedir,"Tasks/"+entry[1]["UID"]))).get_payload():
-                            if submsg.get_content_type()=="message/rfc822":
-                                prefix = "@C"+repr(FL_DARK_MAGENTA)+"@."
-                                break
+                        if "SPARKLE-MOTION" in entry[1]:
+                            prefix = "@C"+repr(FL_DARK_MAGENTA)+"@."
                         ui.main_browser.add(prefix+entry[1]['Subject']+"\t@."+tasktype+"\t@."+dinfo)
             else: #non-Task folder
                 for entry in nsync.cache[c_state.stack[-1][1]]:
@@ -1668,6 +1666,11 @@ class ClientNetSync:
         msg = email.parser.Parser().parsestr(contents)
         msgdict = CaseInsensitiveDict(msg.items())
         msgdict["UID"] = tokens[2]
+        if tokens[0]=="Tasks": #check if we have unsent drafts
+            for submsg in msg.get_payload():
+                if submsg.get_content_type()=="message/rfc822":
+                    msgdict["SPARKLE-MOTION"] = "unsent-drafts"
+                    break
         msgtime = deftime
         if "Date" in msg:
             tztmt = email.utils.parsedate_tz(msg["Date"])
