@@ -100,8 +100,8 @@ screen -d -m /pathname/mt_scrtry_rn.py localhost 6666 6667
 
 To actually use the program, of course, you then need to run the client.
 You can run as many clients as you want from as many different computers
-as you want.  You need to set up the client's files in $HOME/.mailtask_data.
-$HOME/.mailtask_data/settings should contain the password to the server.
+as you want.  You need to set up the client's files in `$HOME/.mailtask_data`.
+`$HOME/.mailtask_data/settings` should contain the password to the server.
 Then run
 ```
 /pathname/client.py servername 6666 6667
