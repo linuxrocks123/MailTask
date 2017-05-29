@@ -86,3 +86,26 @@ Debian-based distros is to use the `python-fltk` package.  Using pip
 with a requirements.txt file with pyFltk has been reported not to work.
 
 I may add more documentation here later, but that's it for now.  Enjoy!
+
+## Usage
+
+Both server.py and mt_scrtry_rn.py are daemons that should always be
+running.  So, do something like this from the shell:
+```
+cd $server_root_dir
+screen -d -m /pathname/server.py 6666 6667
+cd $utility_client_root_dir
+screen -d -m /pathname/mt_scrtry_rn.py localhost 6666 6667
+```
+
+To actually use the program, of course, you then need to run the client.
+You can run as many clients as you want from as many different computers
+as you want.  You need to set up the client's files in $HOME/.mailtask_data.
+$HOME/.mailtask_data/settings should contain the password to the server.
+Then run
+```
+/pathname/client.py servername 6666 6667
+```
+
+Note: You only need to run one server total -- all your clients should
+connect to that one server.
