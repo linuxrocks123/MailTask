@@ -454,6 +454,9 @@ def main():
     print
     print "This program is dedicated to the memory of Aaron Swartz."
     
+    #Socket Default Timeout
+    socket.setdefaulttimeout(600)
+
     client.c_state = client.ClientState() #I no longer think this is needed, but just in case.
     client.cachedir = os.path.abspath(".")
     client.initialize_account_info()
