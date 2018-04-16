@@ -1952,6 +1952,9 @@ class ClientNetSync:
         connected = False
         while not connected:
             try:
+                #sleep so that we don't spike the CPU if Internet goes down
+                time.sleep(1)
+                
                 #Connect to server, set up client sockets
 
                 #Clear update queue
