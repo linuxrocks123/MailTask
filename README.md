@@ -54,6 +54,9 @@ Content-Type: text/plain
 --===============4405596723705947737==--
 ```
 
+Finally, in every INBOX and Sent folder, create an empty file named
+`UIDVALIDITY`.
+
 You then start the server in that directory, passing it two parameters
 indicating the ports you want to use to communicate with the client.
 
