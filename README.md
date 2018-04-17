@@ -57,6 +57,9 @@ Content-Type: text/plain
 Finally, in every INBOX and Sent folder, create an empty file named
 `UIDVALIDITY`.
 
+(There may be other empty files you need to create, but the error
+ messages if you don't have them should be obvious.)
+
 You then start the server in that directory, passing it two parameters
 indicating the ports you want to use to communicate with the client.
 
