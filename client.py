@@ -674,6 +674,79 @@ class ClientUI:
         #Store the currently selected line in the main browser
         self.mb_selected = 0
 
+        #Buttons
+        self.button1 = Fl_Button(250,0,70,25,"Toggle Editor")
+        self.button1.callback(lambda ignored: c_state.toggle_editor())
+        self.button1.labelsize(12)
+        
+        self.button2 = Fl_Button(320,0,70,25,"Cut Obj")
+        self.button2.callback(lambda ignored: c_state.cut_obj())
+        self.button2.labelsize(12)
+        
+        self.button3 = Fl_Button(390,0,70,25,"Copy Obj")
+        self.button3.callback(lambda ignored: c_state.copy_obj())
+        self.button3.labelsize(12)
+        
+        self.button4 = Fl_Button(460,0,70,25,"Paste Obj")
+        self.button4.callback(lambda ignored: c_state.paste_obj())
+        self.button4.labelsize(12)
+        
+        self.button5 = Fl_Button(530,0,70,25,"Delete Obj")
+        self.button5.callback(lambda ignored: c_state.delete_obj())
+        self.button5.labelsize(12)
+        
+        self.button6 = Fl_Button(600,0,70,25,"Back")
+        self.button6.callback(lambda ignored: c_state.pop_view())
+        self.button6.labelsize(12)
+        
+        self.button7 = Fl_Button(670,0,70,25,"Send Email")
+        self.button7.callback(lambda ignored: c_state.send_email())
+        self.button7.labelsize(12)
+        
+        self.button8 = Fl_Button(740,0,70,25,"Send All")
+        self.button8.callback(lambda ignored: c_state.send_task())
+        self.button8.labelsize(12)
+        
+        self.button9 = Fl_Button(810,0,70,25,"Reply All")
+        self.button9.callback(lambda ignored: c_state.make_reply_all())
+        self.button9.labelsize(12)
+        
+        self.button10 = Fl_Button(250,25,70,25,"Reply Sender")
+        self.button10.callback(lambda ignored: c_state.make_reply_sender())
+        self.button10.labelsize(12)
+        
+        self.button11 = Fl_Button(320,25,70,25,"Attach")
+        self.button11.callback(lambda ignored: c_state.load_file_to_clipboard())
+        self.button11.labelsize(12)
+        
+        self.button12 = Fl_Button(390,25,70,25,"Download")
+        self.button12.callback(lambda ignored: c_state.download_attachment())
+        self.button12.labelsize(12)
+        
+        self.button13 = Fl_Button(460,25,70,25,"New Task")
+        self.button13.callback(lambda ignored: c_state.new_task())
+        self.button13.labelsize(12)
+        
+        self.button14 = Fl_Button(530,25,70,25,"Show Done")
+        self.button14.callback(lambda ignored: c_state.toggle_completed_task_visibility())
+        self.button14.labelsize(12)
+        
+        self.button15 = Fl_Button(600,25,70,25,"Mark Completed")
+        self.button15.callback(lambda ignored: c_state.toggle_current_task_completion())
+        self.button15.labelsize(12)
+        
+        self.button16 = Fl_Button(670,25,70,25,"Rename")
+        self.button16.callback(lambda ignored: c_state.rename_attachment())
+        self.button16.labelsize(12)
+        
+        self.button17 = Fl_Button(740,25,70,25,"Addrbook")
+        self.button17.callback(lambda ignored: c_state.update_addr_book_ui())
+        self.button17.labelsize(12)
+        
+        self.button18 = Fl_Button(810,25,70,25,"Task To Top")
+        self.button18.callback(lambda ignored: c_state.nowify())
+        self.button18.labelsize(12)
+
         self.upper_text_display = Fl_Box(165, 0, 755, 40)
         self.upper_text_display.align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE)
 
@@ -961,6 +1034,65 @@ class ClientState:
             self.clipboard = ClientState.Clipboard(ClientState.Clipboard.UIDPATH,self.stack[0][1]+"/"+nsync.cache[self.stack[0][1]][c_index-1][1]["UID"])
         else: #Viewing non-header component of message
             self.clipboard = ClientState.Clipboard(ClientState.Clipboard.SUBMESSAGE,self.stack[-1][1])
+        return 1
+
+    def str_forward(self):
+        if self.stack[-1][0]!=ClientState.HEADERS:
+            fl_alert("Not viewing message.")
+            return 1
+
+        msg = self.stack[-2][1]
+        body = mt_utils.get_body(msg)
+
+        #Handle HTML bodies
+        #VILE CREATURE, THOU DURST CALL UPON ME?
+        #WALK NO MORE, PERVERSION OF NATURE!
+        try:
+            if body.get_content_type()=="text/html":
+                payload = mt_attache.text_html(body,mt_attache.FLTK_ENCODING)
+            else:
+                payload = mt_attache.text_plain(body,mt_attache.FLTK_ENCODING)
+        except AttributeError:
+            payload = ""
+
+        toclip = "---------- Forwarded message ----------\n"
+        for i in ("From","To","Cc","Bcc","Date","Subject"):
+            if i in msg and msg[i]!=None:
+                toclip+=i+": "+msg[i]+"\n"
+        toclip+="\n"+payload+"\n"
+
+        self.clipboard = ClientState.Clipboard(ClientState.Clipboard.TRUESTRING,toclip)
+        
+        return 1
+
+    def uid_dump(self):
+        if not (self.stack[-1][0]==ClientState.RELATED):
+            fl_alert("Message not selected.")
+            return 1
+
+        dumpfile_str = fl_file_chooser("Select a name for the dump file","*","")
+        if dumpfile_str!=None:
+            dumpfile = open(dumpfile_str,'w')
+        else:
+            return 1
+
+        #Get all folders, remove "RELATED", "DRAFTS", "ATTACHMENTS"
+        cachekeys = nsync.cache.keys()
+        for key in ("RELATED","DRAFTS","ATTACHMENTS"):
+            if key in cachekeys:
+                cachekeys.remove(key)
+
+        rel_ids = mt_utils.get_related_ids(self.stack[-2][1])
+        records = []
+        for rid in rel_ids:
+            for key in cachekeys:
+                record = mt_utils.search_cache(rid,nsync.cache[key])
+                if record!=None:
+                    records.append(record)
+                    break
+        records.sort(key=lambda k: k[0])
+        for record in records:
+            dumpfile.write(record[1]["FOLDER"]+"/"+record[1]["UID"]+"\n")
         return 1
 
     def paste_obj(self):
@@ -1484,6 +1616,20 @@ class ClientState:
         nsync.node_update(self.stack[0][1]+"/"+nsync.cache[self.stack[-1][1]][ui.main_browser.value()-1][1]["UID"],msg.as_string())
         return 1
 
+    ##Go to a particular message
+    def go_message(self):
+        uidpath = fl_input("Enter UID path:")
+        try:
+            c_state.stack.append((ClientState.MESSAGE,email.parser.Parser().parse(open(os.path.join(cachedir,uidpath))),uidpath))
+        except IOError,OSError:
+            fl_alert("Message file does not exist on disk!  Your cache may be out-of-date.")
+            return 1
+        except AttributeError:
+            return 1
+        c_state.stack.append((ClientState.HEADERS,))
+        ui.left_browser_callback(ui.left_browser,ClientUI.STACK_PUSHED)
+        return 1
+
     ##Rename an attachment
     def rename_attachment(self):
         if self.stack[-1][0]!=ClientState.ATTACHMENTS or not ui.main_browser.value():
@@ -1587,7 +1733,10 @@ class ClientState:
                             (FL_ALT,ord('c')) : c_state.toggle_current_task_completion,
                             (FL_ALT,ord('r')) : c_state.rename_attachment,
                             (FL_ALT,ord('a')) : c_state.update_addr_book_ui,
-                            (FL_ALT,ord('n')) : c_state.nowify }
+                            (FL_ALT,ord('n')) : c_state.nowify,
+                            (FL_CTRL,ord('g')) : c_state.go_message,
+                            (FL_CTRL,ord('f')) : c_state.str_forward,
+                            (FL_ALT,ord('d')) : c_state.uid_dump  }
 
         #These shortcuts go to the message composition interface.
         #Dynamically generated: Ctrl-0 uses account 0 as from, etc.
