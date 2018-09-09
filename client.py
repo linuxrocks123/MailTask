@@ -2388,7 +2388,7 @@ def main():
                     last_sync_mod_time = sync_mod_time
                 last_sync_time = time.time()
 
-            Fl_wait(5 if len(nsync.server_update_queue) <= 2 else 0)
+            Fl_wait(5 if len(nsync.server_update_queue) <= 2 else 0.1)
             
             #server_synchronize run repeatedly as long as something processed.
             #left_browser_callback should also be run if server_synchronize
