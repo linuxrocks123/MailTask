@@ -539,6 +539,7 @@ def main():
                     if startup_status==3:
                         print "FATAL: We appear to have lost our cmessage connection."
                     sys.exit(0)
+                time.sleep(0.1)
             time.sleep(5)
             if time.time()-last_timedep_check > 600:
                 print "Performing timed pickle backup."
