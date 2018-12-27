@@ -63,7 +63,7 @@ gfind = mt_utils.find
 CaseInsensitiveList = mt_utils.CaseInsensitiveList
 
 ##To use in user agent
-PROG_VERSION_STRING="MailTask/20160503"
+PROG_VERSION_STRING="MailTask/20181227"
 
 ##Constant tuple containing all user-modifiable headers.
 # Other headers are ignored.

@@ -192,9 +192,8 @@ class client_service_thread:
             glock.acquire()
             imapconn = imap_conns[accid]
 
-        #Microsoft's IMAP server will reject messages that have long lines
-        if ainfo[2]=="outlook.office365.com":
-            tosend = mt_utils.rfc2822_flatten(tosend)
+        #Some IMAP servers will reject messages that have long lines
+        tosend = mt_utils.rfc2822_flatten(tosend)
 
         #GMail doesn't like it when you upload your own copy of sent messsages.
         #As other sites with this behavior are found, they will be added here.
