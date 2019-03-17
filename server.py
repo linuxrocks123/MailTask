@@ -176,11 +176,21 @@ class client_service_thread:
         ainfo = account_info[accid]
 
         if ainfo[3].find("starttls:")!=0:
-            smtpconn = smtplib.SMTP_SSL(ainfo[3])
+            server_name = ainfo[3]
+            smtpconn = smtplib.SMTP_SSL(server_name)
         else:
-            smtpconn = smtplib.SMTP(ainfo[3].split(":")[1])
+            server_name = ainfo[3].split(":")[1]
+            smtpconn = smtplib.SMTP(server_name)
             smtpconn.starttls()
         smtpconn.login(ainfo[0],ainfo[1])
+
+        #Some SMTP servers will reject messages with long lines
+        #As sites with this behavior are founded, they will be added here
+        flattened = False
+        if server_name in ["smtp.aol.com"]:
+            flattened = True
+            tosend = mt_utils.rfc2822_flatten(tosend)
+
         smtpconn.sendmail(ainfo[4],line1.split(','),tosend)
 
         #Upload email to sent folder
@@ -193,7 +203,9 @@ class client_service_thread:
             imapconn = imap_conns[accid]
 
         #Some IMAP servers will reject messages that have long lines
-        tosend = mt_utils.rfc2822_flatten(tosend)
+        #Flatten message if it wasn't already flattened:
+        if not flattened:
+            tosend = mt_utils.rfc2822_flatten(tosend)
 
         #GMail doesn't like it when you upload your own copy of sent messsages.
         #As other sites with this behavior are found, they will be added here.

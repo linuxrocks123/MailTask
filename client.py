@@ -2322,7 +2322,10 @@ def main():
     ui.make_window()
 
     #Read cache
-    cachedir = os.path.join(os.path.expanduser("~"),".mailtask_data")
+    if len(sys.argv)==4:
+        cachedir = os.path.join(os.path.expanduser("~"),".mailtask_data")
+    else:
+        cachedir = sys.argv[4]
 
     #Initialize account information
     initialize_account_info()
