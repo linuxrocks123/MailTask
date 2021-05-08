@@ -1840,6 +1840,8 @@ class ClientNetSync:
                     return -1
                 elif not x_completed and y_completed:
                     return 1
+                elif x_completed and y_completed:
+                    return x[0]-y[0]
                 elif x_dinfo and not y_dinfo:
                     return 1
                 elif not x_dinfo and y_dinfo:
