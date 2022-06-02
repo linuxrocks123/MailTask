@@ -39,6 +39,14 @@ class CaseInsensitiveList(list):
             return False
         return True
 
+##Turn a string of form servername:port into a tuple with the server name and port if necessary
+def server_args(server_str):
+    server_parts = server_str.split(":")
+    if len(server_parts)==1:
+        return server_parts
+    else:
+        return (server_parts[0],int(server_parts[1]))
+
 ##Stupidly simple method to turn a sequence type's .index() method into .find()
 def find(seqobj, needle):
     try:

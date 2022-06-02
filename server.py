@@ -177,10 +177,10 @@ class client_service_thread:
 
         if ainfo[3].find("starttls:")!=0:
             server_name = ainfo[3]
-            smtpconn = smtplib.SMTP_SSL(server_name)
+            smtpconn = smtplib.SMTP_SSL(*mt_utils.server_args(server_name))
         else:
             server_name = ainfo[3].split(":")[1]
-            smtpconn = smtplib.SMTP(server_name)
+            smtpconn = smtplib.SMTP(*mt_utils.server_args(server_name))
             smtpconn.starttls()
         smtpconn.login(ainfo[0],ainfo[1])
 
@@ -432,7 +432,7 @@ def imap_handler(username,password,server,status_index):
                 #Login
                 print server+": logging in"
                 sys.stdout.flush()
-                conn = imaplib.IMAP4_SSL(server)
+                conn = imaplib.IMAP4_SSL(*mt_utils.server_args(server))
                 imap_conns[status_index] = conn
                 conn.login(username,password)
 
