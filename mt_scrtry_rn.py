@@ -277,7 +277,20 @@ def handle_msg(uidpath,rfc822,mirror_flag):
             newtask['X-MailTask-Type'] = "Checklist"
             newtask['X-MailTask-Completion-Status'] = "Incomplete"
             newtask['X-MailTask-Virgin'] = "Yes"
-            mt_utils.set_related_ids(newtask,[msg['Message-ID']])
+
+            #GitHub's email support is broken and we have to work around it
+            broken_github_relid = ""
+            msg_relids = mt_utils.get_related_ids(msg)
+            for relid in msg_relids:
+                if relid[len(relid)-11:]=="github.com>":
+                    broken_github_relid = relid
+                    break
+
+            if broken_github_relid!="":
+                mt_utils.set_related_ids(newtask,[msg['Message-ID'],broken_github_relid])
+                newtask.replace_header("Subject",broken_github_relid[1:broken_github_relid.find('@')]
+            else:
+                mt_utils.set_related_ids(newtask,[msg['Message-ID']])
             nsync.node_update("Tasks/NEWMESSAGE",newtask.as_string())
 
 ##Update cache and send info to server
