@@ -288,7 +288,7 @@ def handle_msg(uidpath,rfc822,mirror_flag):
 
             if broken_github_relid!="":
                 mt_utils.set_related_ids(newtask,[msg['Message-ID'],broken_github_relid])
-                newtask.replace_header("Subject",broken_github_relid[1:broken_github_relid.find('@')]
+                newtask.replace_header("Subject",broken_github_relid[1:broken_github_relid.find('@')])
             else:
                 mt_utils.set_related_ids(newtask,[msg['Message-ID']])
             nsync.node_update("Tasks/NEWMESSAGE",newtask.as_string())
