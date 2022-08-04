@@ -47,6 +47,13 @@ def server_args(server_str):
     else:
         return (server_parts[0],int(server_parts[1]))
 
+def davmail_workaround(server_str):
+    server_parts = server_str.split(":")
+    if len(server_args) < 3:
+        return false
+    else:
+        return server_parts[2]=="stupid_davmail"
+
 ##Stupidly simple method to turn a sequence type's .index() method into .find()
 def find(seqobj, needle):
     try:

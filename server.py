@@ -364,6 +364,7 @@ imap_status = []
 def imap_handler(username,password,server,status_index):
     #Dictionary containing current UIDNEXT
     uidnext_dict = { "INBOX" : 1, "Sent" : 1 }
+    serveruidnext_dict = { "INBOX" : (1,0), "Sent" : (1,0) }
     for entry in uidnext_dict.items():
         for cachedmessage in os.listdir(repr(status_index)+"/"+entry[0]):
             try:
@@ -394,10 +395,24 @@ def imap_handler(username,password,server,status_index):
                     if server_uidnext==uidnext_dict[folder]:
                         continue
 
+                    #Deal with DavMail stupidity
+                    if mt_utils.davmail_workaround(server):
+                        if serveruidnext_dict[folder][0] < uidnext_dict[folder]:
+                            serveruidnext_dict[folder] = (uidnext_dict[folder],0)
+                        if serveruidnext_dict[folder][0] <= uidnext_dict[folder]:
+                            serveruidnext_dict[folder] = (server_uidnext,time.time())
+                        if serveruidnext_dict[folder][1] + REAUTHENTICATION_TIMEOUT > time.time():
+                            continue
+                        server_uidnext = serveruidnext_dict[folder][0]
+
                     #Still here?  We've got some downloading to do.
                     conn.select(real_folder, readonly=(not MARK_MESSAGES_READ))
                     for uid in conn.uid("search",None,"ALL")[1][0].split():
                         if int(uid) < uidnext_dict[folder]:
+                            continue
+
+                        #DavMail stupidity
+                        if mt_utils.davmail_workaround(server) and int(uid) >= server_uidnext:
                             continue
 
                         #Download message
