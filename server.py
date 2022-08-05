@@ -401,7 +401,11 @@ def imap_handler(username,password,server,status_index):
                             serveruidnext_dict[folder] = (uidnext_dict[folder],0)
                         if serveruidnext_dict[folder][0] <= uidnext_dict[folder]:
                             serveruidnext_dict[folder] = (server_uidnext,time.time())
-                        if serveruidnext_dict[folder][1] + REAUTHENTICATION_TIMEOUT > time.time():
+                        current_time = time.time()
+                        if serveruidnext_dict[folder][1] + REAUTHENTICATION_TIMEOUT > current_time:
+                            glock.release()
+                            time.sleep(serveruidnext_dict[folder][1] + REAUTHENTICATION_TIMEOUT - current_time)
+                            glock.acquire()
                             continue
                         server_uidnext = serveruidnext_dict[folder][0]
 
