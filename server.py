@@ -410,7 +410,7 @@ def imap_handler(username,password,server,status_index):
                         server_uidnext = serveruidnext_dict[folder][0]
 
                     #Still here?  We've got some downloading to do.
-                    conn.select(real_folder, readonly=(not MARK_MESSAGES_READ))
+                    conn.select(real_folder, readonly=(not MARK_MESSAGES_READ or mt_utils.davmail_workaround(server)))
                     for uid in conn.uid("search",None,"ALL")[1][0].split():
                         if int(uid) < uidnext_dict[folder]:
                             continue
