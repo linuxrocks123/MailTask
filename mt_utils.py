@@ -50,7 +50,7 @@ def server_args(server_str):
 def davmail_workaround(server_str):
     server_parts = server_str.split(":")
     if len(server_parts) < 3:
-        return false
+        return False
     else:
         return server_parts[2]=="stupid_davmail"
 
