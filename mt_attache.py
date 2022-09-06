@@ -42,6 +42,12 @@ def application_pdf(submsg,mime_encoding):
     os.system("xpdf "+temptuple[1]+" & ( sleep 10; rm "+temptuple[1]+" ) &")
     return "PDF file opened"
 
+def image_jpeg(submsg,mime_encoding):
+    temptuple=tempfile.mkstemp()
+    os.fdopen(temptuple[0],'w').write(submsg.get_payload(decode=True))
+    os.system("display "+temptuple[1]+" & ( sleep 10; rm "+temptuple[1]+" ) &")
+    return "JPEG file opened"
+
 def application_octetstream(submsg,mime_encoding):
     fc = fltk.Fl_File_Chooser(".","*",fltk.Fl_File_Chooser.CREATE,"Select Save Location")
     fc.show()
@@ -63,7 +69,8 @@ def display_submessage(submsg):
         return ""
     
     ATTACHE = { "text/plain" : text_plain, "text/html" : text_html,
-                "application/pdf" : application_pdf }
+                "application/pdf" : application_pdf,
+                "image/jpeg" : image_jpeg }
 
     
     mime_encoding = submsg.get_content_charset()
