@@ -22,6 +22,7 @@ import email
 import email.message
 import email.parser
 import email.utils
+import icalendar
 from ontask_messages import *
 import os
 import mt_chronos
@@ -106,6 +107,7 @@ class Msg_Dict:
 #             act in whatever way is appropriate
 def handle_msg(uidpath,rfc822,mirror_flag):
     global l_timedep_tasks
+    global nsync
 
     print "In handle_msg for "+uidpath
     sys.stdout.flush()
@@ -206,13 +208,124 @@ def handle_msg(uidpath,rfc822,mirror_flag):
             try:
                 mt_utils.walk_attachments(msg,scan_component)
                 for entry in chronos_tuples:
-                    mt_gcal_sync.insert_gcal_event(entry)
+                    gcal_id = mt_gcal_sync.insert_gcal_event(entry)
+                    newtask=email.message.Message()
+                    nt_body = email.message.Message()
+                    nt_body['Content-Type'] = "text/plain"
+                    payload=entry[1]
+                    nt_body.set_payload(payload)
+                    mt_utils.attach_payload(newtask,nt_body)
+                    newtask['Content-Type']="multipart/x.MailTask"
+                    newtask['Date']=email.utils.formatdate(localtime=True)
+                    newtask['Subject'] = entry[0]
+                    newtask['X-MailTask-Type'] = "Checklist"
+                    newtask['X-MailTask-Completion-Status'] = "Time-Dependent"
+                    newtask['X-MailTask-Date-Info'] = email.utils.formatdate(timeval=entry[2],localtime=True)+" / "+email.utils.formatdate(timeval=entry[3],localtime=True)
+                    newtask['X-MailTask-GCalID'] = gcal_id
+                    mt_utils.set_related_ids(newtask,[msg['Message-ID']])
+                    nsync.node_update("Tasks/NEWMESSAGE",newtask.as_string())
                 return
             except Exception as e:
                 print "ERROR: Attempted to schedule calendar event and failed; probable bug."
                 print "The exception: "+repr(e)
                 sys.stdout.flush()
-        
+        else:
+            ical_tuples = []
+            def scan_component(component):
+                try:
+                    result = icalendar.Calendar.from_ical(component.get_payload(decode=True))
+                except:
+                    return
+                x = result.property_items()
+                in_event = False
+                entry = ["","",0,0]
+                for i in range(len(x)):
+                    if len(x[i])>=2 and x[i][1]=="VEVENT":
+                        in_event = x[i][0]=="BEGIN"
+                    if in_event:
+                        if x[i][0]=="SUMMARY":
+                            entry[0] += str(x[i][1])
+                        elif x[i][0]=="DESCRIPTION":
+                            entry[1] += str(x[i][1])
+                        elif x[i][0]=="DTSTART":
+                            entry[2] = int(x[i][1].dt.strftime("%s"))
+                        elif x[i][0]=="DTEND":
+                            entry[3] = int(x[i][1].dt.strftime("%s"))
+                        elif x[i][0]=="STATUS" and x[i][1]=="CANCELLED":
+                            entry[0] = "CANCELED: " + entry[0]
+                    elif entry[2] and entry[3]:
+                        ical_tuples.append(entry)
+                        entry = ["","",0,0]
+
+            try:
+                mt_utils.walk_attachments(msg,scan_component)
+                for entry in ical_tuples:
+                    if do_gcal:
+                        gcal_id = mt_gcal_sync.insert_gcal_event(entry)
+                    newtask=email.message.Message()
+                    nt_body = email.message.Message()
+                    nt_body['Content-Type'] = "text/plain"
+                    payload=entry[1]
+                    nt_body.set_payload(payload)
+                    mt_utils.attach_payload(newtask,nt_body)
+                    newtask['Content-Type']="multipart/x.MailTask"
+                    newtask['Date']=email.utils.formatdate(localtime=True)
+                    newtask['Subject'] = entry[0]
+                    newtask['X-MailTask-Type'] = "Checklist"
+                    newtask['X-MailTask-Completion-Status'] = "Time-Dependent"
+                    newtask['X-MailTask-Date-Info'] = email.utils.formatdate(timeval=entry[2],localtime=True)+" / "+email.utils.formatdate(timeval=entry[3],localtime=True)
+                    if do_gcal:
+                        newtask['X-MailTask-GCalID'] = gcal_id
+                    mt_utils.set_related_ids(newtask,[msg['Message-ID']])
+                    nsync.node_update("Tasks/NEWMESSAGE",newtask.as_string())
+                if len(ical_tuples):
+                    return
+            except Exception as e:
+                print "ERROR: Attempted to schedule calendar event and failed; probable bug."
+                print "The exception: "+repr(e)
+                sys.stdout.flush()
+
+        #[TODO] Support
+        if msg['Subject'].find("[TODO]")!=-1:
+            print "handle_msg: TODO message found"
+            sys.stdout.flush()
+            task_fname = "Tasks/NEWMESSAGE"
+            task_subject = client.get_nick_from_header(msg['From']) + " TODO"
+            for task in nsync.cache['Tasks']:
+                if task[1]['Subject']==task_subject:
+                    task_fname = "Tasks/"+task[1]['UID']
+                    break
+            if task_fname=="Tasks/NEWMESSAGE":
+                print "handle_msg: Creating new TODO task for "+task_subject
+                todo_task=email.message.Message()
+                todo_task['Content-Type']="multipart/x.MailTask"
+                todo_task['Subject'] = task_subject
+                todo_task['X-MailTask-Type'] = "Checklist"
+                todo_task['X-MailTask-Completion-Status'] = "Incomplete"
+                task_body = email.message.Message()
+                task_body['Content-Type'] = "text/plain"
+                task_body.set_payload("TODO List\n\n")
+                mt_utils.attach_payload(todo_task,task_body)
+                todo_task['X-MailTask-Virgin'] = "Yes"
+                related_ids = []
+            else:
+                todo_task = email.parser.Parser().parse(open(os.path.join(client.cachedir,task_fname)))
+                task_body = todo_task.get_payload()[0]
+                related_ids = mt_utils.get_related_ids(todo_task)
+
+            del todo_task['Date']
+            todo_task['Date']=email.utils.formatdate(localtime=True)
+            payload_addition = msg.get_payload()
+            if type(payload_addition)!=str and len(payload_addition):
+                payload_addition = payload_addition[0].get_payload()
+            if type(payload_addition)!=str:
+                payload_addition = "CHECK MESSAGES"
+            task_body.set_payload(task_body.get_payload()+'\n'+payload_addition)
+            related_ids.append(msg['Message-ID'])
+            mt_utils.set_related_ids(todo_task,related_ids)
+            nsync.node_update(task_fname,todo_task.as_string())
+            return
+
         #Okay, now, first check if there is a Task out there that refers to a Message-ID that is also referred to by this message
         task_mid = None
         if 'References' in msg:

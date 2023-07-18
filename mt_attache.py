@@ -70,7 +70,7 @@ def display_submessage(submsg):
     
     ATTACHE = { "text/plain" : text_plain, "text/html" : text_html,
                 "application/pdf" : application_pdf,
-                "image/jpeg" : image_jpeg }
+                "image/jpeg" : image_jpeg, "image/png" : image_jpeg }
 
     
     mime_encoding = submsg.get_content_charset()

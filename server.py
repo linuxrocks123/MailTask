@@ -175,14 +175,21 @@ class client_service_thread:
             raise IOError("Invalid account ID")
         ainfo = account_info[accid]
 
-        if ainfo[3].find("starttls:")!=0:
+        if ainfo[3].find("starttls:")!=0 and ainfo[3].find("nologin:")!=0:
             server_name = ainfo[3]
             smtpconn = smtplib.SMTP_SSL(*mt_utils.server_args(server_name))
         else:
-            server_name = ainfo[3].split(":")[1]
+            server_name = reduce(lambda x, y: x+':'+y,ainfo[3].split(":")[1:])
             smtpconn = smtplib.SMTP(*mt_utils.server_args(server_name))
-            smtpconn.starttls()
-        smtpconn.login(ainfo[0],ainfo[1])
+            if ainfo[3].find("starttls:")==0:
+                smtpconn.starttls()
+
+        if ainfo[3].find("nologin:")!=0:
+            server_name_parts = server_name.split(':')
+            if len(server_name_parts) < 4:
+                smtpconn.login(ainfo[0],ainfo[1])
+            else:
+                smtpconn.login(server_name_parts[2],server_name_parts[3])
 
         #Some SMTP servers will reject messages with long lines
         #As sites with this behavior are founded, they will be added here
