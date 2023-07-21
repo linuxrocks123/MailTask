@@ -18,6 +18,7 @@
 
 import client
 import cPickle
+import datetime
 import email
 import email.message
 import email.parser
@@ -27,6 +28,7 @@ from ontask_messages import *
 import os
 import mt_chronos
 import mt_utils
+import pytz
 from select import select
 import socket
 import shutil
@@ -240,22 +242,25 @@ def handle_msg(uidpath,rfc822,mirror_flag):
                 in_event = False
                 entry = ["","",0,0]
                 for i in range(len(x)):
-                    if len(x[i])>=2 and x[i][1]=="VEVENT":
-                        in_event = x[i][0]=="BEGIN"
-                    if in_event:
-                        if x[i][0]=="SUMMARY":
-                            entry[0] += str(x[i][1])
-                        elif x[i][0]=="DESCRIPTION":
-                            entry[1] += str(x[i][1])
-                        elif x[i][0]=="DTSTART":
-                            entry[2] = int(x[i][1].dt.strftime("%s"))
-                        elif x[i][0]=="DTEND":
-                            entry[3] = int(x[i][1].dt.strftime("%s"))
-                        elif x[i][0]=="STATUS" and x[i][1]=="CANCELLED":
-                            entry[0] = "CANCELED: " + entry[0]
-                    elif entry[2] and entry[3]:
-                        ical_tuples.append(entry)
-                        entry = ["","",0,0]
+                    try:
+                        if len(x[i])>=2 and x[i][1]=="VEVENT":
+                            in_event = x[i][0]=="BEGIN"
+                        if in_event:
+                            if x[i][0]=="SUMMARY":
+                                entry[0] += str(x[i][1])
+                            elif x[i][0]=="DESCRIPTION":
+                                entry[1] += str(x[i][1])
+                            elif x[i][0]=="DTSTART":
+                                entry[2] = int((x[i][1].dt - datetime.datetime(1970,1,1,tzinfo=pytz.utc)).total_seconds())
+                            elif x[i][0]=="DTEND":
+                                entry[3] = int((x[i][1].dt - datetime.datetime(1970,1,1,tzinfo=pytz.utc)).total_seconds())
+                            elif x[i][0]=="STATUS" and x[i][1]=="CANCELLED":
+                                entry[0] = "CANCELED: " + entry[0]
+                        elif entry[2] and entry[3]:
+                            ical_tuples.append(entry)
+                            entry = ["","",0,0]
+                    except:
+                        pass
 
             try:
                 mt_utils.walk_attachments(msg,scan_component)
