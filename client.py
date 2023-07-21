@@ -1525,7 +1525,7 @@ class ClientState:
         if fname==None:
             return 1
         try:
-            output = os.fdopen(os.open(fname,os.O_WRONLY | os.O_CREAT),"w")
+            output = os.fdopen(os.open(fname,os.O_WRONLY | os.O_CREAT | os.O_TRUNC),"w")
         except IOError:
             fl_alert("Failed to open specified file for writing")
         output.write(msg.get_payload(decode=True))
