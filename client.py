@@ -236,9 +236,9 @@ def get_prettyprintable_column_str(dd_hdrs):
 
         #Otherwise, return appropriate colored string
         best_header = dd_hdrs['To'] if 'To' in dd_hdrs else dd_hdrs['Cc'] if 'Cc' in dd_hdrs else dd_hdrs['Bcc']
-        return "@C"+repr(color_dict[color_selector])+"@."+addrbook_reverse_lookup(best_header)
+        return "@C"+repr(color_dict[color_selector])+"@."+mt_utils.get_unicode_subject(addrbook_reverse_lookup(best_header))
     elif 'From' in dd_hdrs: #not the sender
-        return "@."+addrbook_reverse_lookup(dd_hdrs['From'])
+        return "@."+mt_utils.get_unicode_subject(addrbook_reverse_lookup(dd_hdrs['From']))
     else:
         return "@.Unknown"
 
@@ -480,7 +480,7 @@ class ClientUI:
                         prefix = "@."
                         if "SPARKLE-MOTION" in entry[1]:
                             prefix = "@C"+repr(FL_DARK_MAGENTA)+"@."
-                        ui.main_browser.add(prefix+entry[1]['Subject']+"\t@."+tasktype+"\t@."+dinfo)
+                        ui.main_browser.add(prefix+mt_utils.get_unicode_subject(entry[1]['Subject'])+"\t@."+tasktype+"\t@."+dinfo)
             else: #non-Task folder
                 for entry in nsync.cache[c_state.stack[-1][1]]:
                     if mb_counter>=horizon:
@@ -488,7 +488,7 @@ class ClientUI:
                     mb_counter+=1
 
                     dd_hdrs = CaseInsensitiveDefaultDict(lambda: "", entry[1])
-                    ui.main_browser.add("@."+dd_hdrs["Subject"]+"\t"+get_prettyprintable_column_str(entry[1])+"\t@."+(mt_utils.browser_time(dd_hdrs["Date"]) if dd_hdrs["Date"]!="" else ""))
+                    ui.main_browser.add("@."+mt_utils.get_unicode_subject(dd_hdrs["Subject"])+"\t"+get_prettyprintable_column_str(entry[1])+"\t@."+(mt_utils.browser_time(dd_hdrs["Date"]) if dd_hdrs["Date"]!="" else ""))
             if ui.mb_selected<=len(nsync.cache[c_state.stack[-1][1]]):
                 ui.main_browser.select(ui.mb_selected)
             else:
@@ -825,6 +825,7 @@ class ClientState:
         TRUESTRING=1
         SUBMESSAGE=2
         TASKPATH=3
+        ATTACHMENTS=4
         
         def __init__(self,typ,val):
             self.type = typ
@@ -1134,20 +1135,27 @@ class ClientState:
             rel_ids.extend(self.clipboard.value)
             mt_utils.set_related_ids(self.stack[-2][1],rel_ids)
             nsync.node_update(self.get_stacktop_uidpath(),self.get_stacktop_msg().as_string())
-        else: #clipboard is SUBMESSAGE
-            if self.stack[-1][0]==ClientState.RELATED: #RELATED message view
-                fl_alert("Cannot paste submessage to related message view.")
-                return 1
-            elif self.stack[-1][0]==ClientState.DRAFTS: #DRAFTS message view
-                self.stack[-2][1].attach(self.clipboard.value)
-            elif self.stack[-1][0]==ClientState.ATTACHMENTS:
-                mt_utils.attach_payload(self.stack[-2][1],self.clipboard.value)
-            elif self.stack[-1][0]==ClientState.FOLDER: #folder view
-                fl_alert("Cannot paste submessage to folder.")
-                return 1
-            else: #single message view (viewing headers or non-headers, no matter)
-                mt_utils.attach_payload(self.stack[-2][1],self.clipboard.value)
+        else:
+            def do_attachment(clipboard_value):
+                if self.stack[-1][0]==ClientState.RELATED: #RELATED message view
+                    fl_alert("Cannot paste submessage to related message view.")
+                    return 1
+                elif self.stack[-1][0]==ClientState.DRAFTS: #DRAFTS message view
+                    self.stack[-2][1].attach(clipboard_value)
+                elif self.stack[-1][0]==ClientState.ATTACHMENTS:
+                    mt_utils.attach_payload(self.stack[-2][1],clipboard_value)
+                elif self.stack[-1][0]==ClientState.FOLDER: #folder view
+                    fl_alert("Cannot paste submessage to folder.")
+                    return 1
+                else: #single message view (viewing headers or non-headers, no matter)
+                    mt_utils.attach_payload(self.stack[-2][1],clipboard_value)
 
+            if self.clipboard.type==ClientState.Clipboard.SUBMESSAGE:
+                do_attachment(self.clipboard.value)
+            elif self.clipboard.type==ClientState.Clipboard.ATTACHMENTS:
+                for clipvalue in self.clipboard.value:
+                    do_attachment(clipvalue)
+                    
             nsync.node_update(self.get_stacktop_uidpath(),self.get_stacktop_msg().as_string())
 
         self.deathslayer()
@@ -1498,20 +1506,28 @@ class ClientState:
     ##Load a file attachment to the clipboard
     # Always encoded as base64
     def load_file_to_clipboard(self):
-        fname=fl_file_chooser("Select an attachment","*","")
-        if fname==None:
+        chooser = Fl_File_Chooser(".","*",1,"Select An Attachment")
+        chooser.show()
+        while chooser.shown():
+            Fl_wait(5)
+
+        if not chooser.count():
             return 1
-        try:
-            filetext=open(fname).read()
-        except IOError:
-            fl_alert("No such file")
-            return 1
-        msg = email.message.Message()
-        msg['Content-Type']=mt_utils.get_mime_type(fname)
-        msg['Content-Transfer-Encoding']="base64"
-        msg.add_header('Content-Disposition',"attachment",filename=(fname if fname.rfind("/")==-1 else fname[fname.rfind("/")+1:]))
-        msg.set_payload(base64.b64encode(filetext))
-        self.clipboard = ClientState.Clipboard(ClientState.Clipboard.SUBMESSAGE,msg)
+
+        self.clipboard = ClientState.Clipboard(ClientState.Clipboard.ATTACHMENTS,[])
+        for i in range(1,chooser.count()+1):
+            fname = chooser.value(i)
+            try:
+                filetext=open(fname).read()
+            except IOError:
+                fl_alert("No such file")
+                return 1
+            msg = email.message.Message()
+            msg['Content-Type']=mt_utils.get_mime_type(fname)
+            msg['Content-Transfer-Encoding']="base64"
+            msg.add_header('Content-Disposition',"attachment",filename=(fname if fname.rfind("/")==-1 else fname[fname.rfind("/")+1:]))
+            msg.set_payload(base64.b64encode(filetext))
+            self.clipboard.value.append(msg)
         return 1
 
     ##Download an attachment

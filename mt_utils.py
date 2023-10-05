@@ -18,6 +18,7 @@
 
 import base64
 import email
+import email.header
 import email.parser
 import email.utils
 import sys
@@ -255,6 +256,16 @@ def delete_payload_component(parent,child):
         if 'Content-Transfer-Encoding' in sole_component:
             del parent['Content-Transfer-Encoding']
             parent['Content-Transfer-Encoding']=sole_component['Content-Transfer-Encoding']
+
+def get_unicode_subject(fucked):
+    unfucked_str = ""
+    unfucked_list = email.header.decode_header(fucked)
+    for entry in unfucked_list:
+        if entry[1]:
+            unfucked_str += entry[0].decode(encoding=entry[1],errors="replace").encode(encoding="UTF-8",errors="replace")
+        else:
+            unfucked_str += entry[0]
+    return unfucked_str
 
 #Get best submessage from an email to use as a body.  Return it
 def get_body(msg):
