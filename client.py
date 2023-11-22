@@ -67,7 +67,7 @@ PROG_VERSION_STRING="MailTask/20181227"
 
 ##Constant tuple containing all user-modifiable headers.
 # Other headers are ignored.
-MODIFIABLE_HEADERS = CaseInsensitiveList(["From","Reply-To","To","Cc","Bcc","Subject", "X-MailTask-Date-Info", "X-MailTask-Completion-Status", "Date"])
+MODIFIABLE_HEADERS = CaseInsensitiveList(["From","Reply-To","To","Cc","Bcc","Subject", "X-MailTask-Date-Info", "X-MailTask-Completion-Status", "X-MailTask-Priority", "Date"])
 
 ##Constant tuple containing headers likely to have an email address in them
 EMAIL_MODIFIABLE_HEADERS = CaseInsensitiveList(["From","Reply-To","To","Cc","Bcc"])
@@ -424,7 +424,7 @@ class ClientUI:
                         break
                     mb_counter+=1
 
-                    if c_state.show_completed_tasks or entry[1]['X-MailTask-Completion-Status']!="Completed":
+                    if c_state.show_completed_tasks or entry[1]['X-MailTask-Completion-Status']!="Completed" or 'X-MailTask-Priority' in entry[1]:
                         tasktype = mt_utils.get_task_type(entry[1])
                         if tasktype=="Checklist":
                             dinfo = mt_utils.browser_time(entry[1]['Date'])
@@ -478,8 +478,16 @@ class ClientUI:
                         #Highlight tasks with unsent drafts in purple,
                         #or else I'd doubt my commitment to Sparkle Motion.
                         prefix = "@."
-                        if "SPARKLE-MOTION" in entry[1]:
+                        if "SPARKLE-MOTION" in entry[1] and 'X-MailTask-Priority' in entry[1] and entry[1]['X-MailTask-Completion-Status']=="Completed":
+                            prefix = "@C"+repr(FL_DARK_RED)+"@."
+                        elif "SPARKLE-MOTION" in entry[1] and 'X-MailTask-Priority' in entry[1]:
+                            prefix = "@b@C"+repr(FL_DARK_MAGENTA)+"@."
+                        elif "SPARKLE-MOTION" in entry[1]:
                             prefix = "@C"+repr(FL_DARK_MAGENTA)+"@."
+                        elif entry[1]['X-MailTask-Completion-Status']=="Completed" and 'X-MailTask-Priority' in entry[1]:
+                            prefix = "@C"+repr(FL_DARK_CYAN)+"@."
+                        elif 'X-MailTask-Priority' in entry[1]:
+                            prefix = "@b@."
                         ui.main_browser.add(prefix+mt_utils.get_unicode_subject(entry[1]['Subject'])+"\t@."+tasktype+"\t@."+dinfo)
             else: #non-Task folder
                 for entry in nsync.cache[c_state.stack[-1][1]]:
@@ -1195,7 +1203,13 @@ class ClientState:
         elif self.stack[-1][0]==ClientState.HEADERS:
             fl_alert("Cannot delete email headers.")
         elif self.stack[-1][0]==ClientState.ATTACHMENTS:
-            mt_utils.delete_payload_component(self.stack[-2][1],nsync.cache["ATTACHMENTS"][b_index-1][1][None])
+            #If this is really a draft, copy from draft code
+            attachment_to_delete = nsync.cache["ATTACHMENTS"][b_index-1][1][None]
+            if attachment_to_delete["Content-Type"]=="message/rfc822":
+                payload = self.stack[-2][1].get_payload()
+                del payload[payload.index(attachment_to_delete)]
+            else:
+                mt_utils.delete_payload_component(self.stack[-2][1],attachment_to_delete)
             nsync.node_update(self.get_stacktop_uidpath(),self.get_stacktop_msg().as_string())
         elif self.stack[-1][0]==ClientState.FOLDER: #folder view
             nsync.node_update(self.stack[0][1]+"/"+nsync.cache[self.stack[0][1]][b_index-1][1]["UID"],"")
@@ -1621,6 +1635,19 @@ class ClientState:
         nsync.node_update(self.stack[0][1]+"/"+nsync.cache[self.stack[-1][1]][ui.main_browser.value()-1][1]["UID"],msg.as_string())
         return 1
 
+    ##Increase current task's priority
+    def increase_task_priority(self):
+        if len(self.stack)!=1 or self.stack[-1][1]!="Tasks" or not ui.main_browser.value():
+            fl_alert("Increase task priority not valid in this view.")
+
+        msg = email.parser.Parser().parse(open(os.path.join(cachedir,self.stack[0][1],nsync.cache[self.stack[-1][1]][ui.main_browser.value()-1][1]["UID"])))
+        if 'X-MailTask-Priority' in msg:
+            msg['X-MailTask-Priority'] = repr(int(msg['X-MailTask-Priority'])+1)
+        else:
+            msg['X-MailTask-Priority'] = "1"
+        nsync.node_update(self.stack[0][1]+"/"+nsync.cache[self.stack[-1][1]][ui.main_browser.value()-1][1]["UID"],msg.as_string())
+        return 1
+
     ##Make task's time be now
     def nowify(self):
         if len(self.stack)!=1 or self.stack[-1][1]!="Tasks" or not ui.main_browser.value():
@@ -1747,6 +1774,7 @@ class ClientState:
                             (FL_CTRL,ord('n')) : c_state.new_task,
                             (FL_ALT,ord('v')) : c_state.toggle_completed_task_visibility,
                             (FL_ALT,ord('c')) : c_state.toggle_current_task_completion,
+                            (FL_ALT,ord('p')) : c_state.increase_task_priority,
                             (FL_ALT,ord('r')) : c_state.rename_attachment,
                             (FL_ALT,ord('a')) : c_state.update_addr_book_ui,
                             (FL_ALT,ord('n')) : c_state.nowify,
@@ -1848,10 +1876,23 @@ class ClientNetSync:
             self.cache[tokens[0]].sort(key=lambda k: k[0],reverse=True) #inefficient
         else:
             def tasks_cmp(x,y):
+                x_priority = 0 if 'X-MailTask-Priority' not in x[1] else int(x[1]['X-MailTask-Priority'])
+                y_priority = 0 if 'X-MailTask-Priority' not in y[1] else int(y[1]['X-MailTask-Priority'])
                 x_completed = 'X-MailTask-Completion-Status' in x[1] and x[1]['X-MailTask-Completion-Status']=="Completed"
                 y_completed = 'X-MailTask-Completion-Status' in y[1] and y[1]['X-MailTask-Completion-Status']=="Completed"
                 x_dinfo = 'X-MailTask-Date-Info' in x[1]
                 y_dinfo = 'X-MailTask-Date-Info' in y[1]
+                if x_priority!=y_priority:
+                    if x_completed and not x_priority:
+                        return -1
+                    elif y_completed and not y_priority:
+                        return 1
+                    elif not x_dinfo and y_dinfo:
+                        return -1
+                    elif x_dinfo and not y_dinfo:
+                        return 1
+                    else:
+                        return x_priority - y_priority
                 if x_completed and not y_completed:
                     return -1
                 elif not x_completed and y_completed:
