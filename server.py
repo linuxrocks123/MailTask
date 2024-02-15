@@ -541,7 +541,7 @@ def doing_science():
         glock.acquire()
         for server_socket in server_notify.items():
             try:
-                server_socket[1].write(OnTask_Message("KEEPALIVE-NOTIFY","").get_message_string())
+                server_socket[1].write(OnTask_Message("KEEPALIVE-NOTIFY"," ".join(map(repr,imap_status))).get_message_string())
                 server_socket[1].flush()
                 ack = OnTask_Message.message_from_socket(server_socket[1])
                 if ack.cmd_id!="ACK":

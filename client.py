@@ -682,78 +682,91 @@ class ClientUI:
         #Store the currently selected line in the main browser
         self.mb_selected = 0
 
+        #Status Monitors
+        self.boxes = []
+
+        POSITIONS = [(250,0,70,25),(320,0,70,25),(390,0,70,25),(460,0,70,25),(530,0,70,25),(600,0,70,25),(670,0,70,25),(740,0,70,25),(810,0,70,25),
+                     (250,25,70,25),(320,25,70,25),(390,25,70,25),(460,25,70,25),(530,25,70,25),(600,25,70,25),(670,25,70,25),(740,25,70,25),(810,25,70,25)]
+
+        for num in range(len(account_info)):
+            box = Fl_Box(*POSITIONS[num])
+            box.box(FL_EMBOSSED_BOX)
+            box.label(repr(num))
+            box.labelsize(12)
+            self.boxes.append(box)
+        
         #Buttons
-        self.button1 = Fl_Button(250,0,70,25,"Toggle Editor")
-        self.button1.callback(lambda ignored: c_state.toggle_editor())
-        self.button1.labelsize(12)
+        # self.button1 = Fl_Button(250,0,70,25,"Toggle Editor")
+        # self.button1.callback(lambda ignored: c_state.toggle_editor())
+        # self.button1.labelsize(12)
         
-        self.button2 = Fl_Button(320,0,70,25,"Cut Obj")
-        self.button2.callback(lambda ignored: c_state.cut_obj())
-        self.button2.labelsize(12)
+        # self.button2 = Fl_Button(320,0,70,25,"Cut Obj")
+        # self.button2.callback(lambda ignored: c_state.cut_obj())
+        # self.button2.labelsize(12)
         
-        self.button3 = Fl_Button(390,0,70,25,"Copy Obj")
-        self.button3.callback(lambda ignored: c_state.copy_obj())
-        self.button3.labelsize(12)
+        # self.button3 = Fl_Button(390,0,70,25,"Copy Obj")
+        # self.button3.callback(lambda ignored: c_state.copy_obj())
+        # self.button3.labelsize(12)
         
-        self.button4 = Fl_Button(460,0,70,25,"Paste Obj")
-        self.button4.callback(lambda ignored: c_state.paste_obj())
-        self.button4.labelsize(12)
+        # self.button4 = Fl_Button(460,0,70,25,"Paste Obj")
+        # self.button4.callback(lambda ignored: c_state.paste_obj())
+        # self.button4.labelsize(12)
         
-        self.button5 = Fl_Button(530,0,70,25,"Delete Obj")
-        self.button5.callback(lambda ignored: c_state.delete_obj())
-        self.button5.labelsize(12)
+        # self.button5 = Fl_Button(530,0,70,25,"Delete Obj")
+        # self.button5.callback(lambda ignored: c_state.delete_obj())
+        # self.button5.labelsize(12)
         
-        self.button6 = Fl_Button(600,0,70,25,"Back")
-        self.button6.callback(lambda ignored: c_state.pop_view())
-        self.button6.labelsize(12)
+        # self.button6 = Fl_Button(600,0,70,25,"Back")
+        # self.button6.callback(lambda ignored: c_state.pop_view())
+        # self.button6.labelsize(12)
         
-        self.button7 = Fl_Button(670,0,70,25,"Send Email")
-        self.button7.callback(lambda ignored: c_state.send_email())
-        self.button7.labelsize(12)
+        # self.button7 = Fl_Button(670,0,70,25,"Send Email")
+        # self.button7.callback(lambda ignored: c_state.send_email())
+        # self.button7.labelsize(12)
         
-        self.button8 = Fl_Button(740,0,70,25,"Send All")
-        self.button8.callback(lambda ignored: c_state.send_task())
-        self.button8.labelsize(12)
+        # self.button8 = Fl_Button(740,0,70,25,"Send All")
+        # self.button8.callback(lambda ignored: c_state.send_task())
+        # self.button8.labelsize(12)
         
-        self.button9 = Fl_Button(810,0,70,25,"Reply All")
-        self.button9.callback(lambda ignored: c_state.make_reply_all())
-        self.button9.labelsize(12)
+        # self.button9 = Fl_Button(810,0,70,25,"Reply All")
+        # self.button9.callback(lambda ignored: c_state.make_reply_all())
+        # self.button9.labelsize(12)
         
-        self.button10 = Fl_Button(250,25,70,25,"Reply Sender")
-        self.button10.callback(lambda ignored: c_state.make_reply_sender())
-        self.button10.labelsize(12)
+        # self.button10 = Fl_Button(250,25,70,25,"Reply Sender")
+        # self.button10.callback(lambda ignored: c_state.make_reply_sender())
+        # self.button10.labelsize(12)
         
-        self.button11 = Fl_Button(320,25,70,25,"Attach")
-        self.button11.callback(lambda ignored: c_state.load_file_to_clipboard())
-        self.button11.labelsize(12)
+        # self.button11 = Fl_Button(320,25,70,25,"Attach")
+        # self.button11.callback(lambda ignored: c_state.load_file_to_clipboard())
+        # self.button11.labelsize(12)
         
-        self.button12 = Fl_Button(390,25,70,25,"Download")
-        self.button12.callback(lambda ignored: c_state.download_attachment())
-        self.button12.labelsize(12)
+        # self.button12 = Fl_Button(390,25,70,25,"Download")
+        # self.button12.callback(lambda ignored: c_state.download_attachment())
+        # self.button12.labelsize(12)
         
-        self.button13 = Fl_Button(460,25,70,25,"New Task")
-        self.button13.callback(lambda ignored: c_state.new_task())
-        self.button13.labelsize(12)
+        # self.button13 = Fl_Button(460,25,70,25,"New Task")
+        # self.button13.callback(lambda ignored: c_state.new_task())
+        # self.button13.labelsize(12)
         
-        self.button14 = Fl_Button(530,25,70,25,"Show Done")
-        self.button14.callback(lambda ignored: c_state.toggle_completed_task_visibility())
-        self.button14.labelsize(12)
+        # self.button14 = Fl_Button(530,25,70,25,"Show Done")
+        # self.button14.callback(lambda ignored: c_state.toggle_completed_task_visibility())
+        # self.button14.labelsize(12)
         
-        self.button15 = Fl_Button(600,25,70,25,"Mark Completed")
-        self.button15.callback(lambda ignored: c_state.toggle_current_task_completion())
-        self.button15.labelsize(12)
+        # self.button15 = Fl_Button(600,25,70,25,"Mark Completed")
+        # self.button15.callback(lambda ignored: c_state.toggle_current_task_completion())
+        # self.button15.labelsize(12)
         
-        self.button16 = Fl_Button(670,25,70,25,"Rename")
-        self.button16.callback(lambda ignored: c_state.rename_attachment())
-        self.button16.labelsize(12)
+        # self.button16 = Fl_Button(670,25,70,25,"Rename")
+        # self.button16.callback(lambda ignored: c_state.rename_attachment())
+        # self.button16.labelsize(12)
         
-        self.button17 = Fl_Button(740,25,70,25,"Addrbook")
-        self.button17.callback(lambda ignored: c_state.update_addr_book_ui())
-        self.button17.labelsize(12)
+        # self.button17 = Fl_Button(740,25,70,25,"Addrbook")
+        # self.button17.callback(lambda ignored: c_state.update_addr_book_ui())
+        # self.button17.labelsize(12)
         
-        self.button18 = Fl_Button(810,25,70,25,"Task To Top")
-        self.button18.callback(lambda ignored: c_state.nowify())
-        self.button18.labelsize(12)
+        # self.button18 = Fl_Button(810,25,70,25,"Task To Top")
+        # self.button18.callback(lambda ignored: c_state.nowify())
+        # self.button18.labelsize(12)
 
         self.upper_text_display = Fl_Box(165, 0, 755, 40)
         self.upper_text_display.align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE)
@@ -2305,6 +2318,27 @@ def server_synchronize():
             
         elif smessage.cmd_id=="KEEPALIVE-NOTIFY":
             nsync.keepalive_notify()
+            timevals_str = smessage.body.split(' ')
+            timevals = []
+            for timeval_str in timevals_str:
+                try:
+                    timeval_num = float(timeval_str)
+                    timevals.append(timeval_num)
+                except:
+                    break
+            current_time = time.time()
+            for tidx in range(min(len(timevals),len(ui.boxes))):
+                timediff = current_time - timevals[tidx]
+                if timediff > 600:
+                    ui.boxes[tidx].color(FL_RED)
+                elif timediff > 500:
+                    ui.boxes[tidx].color(FL_DARK_RED)
+                elif timediff > 300:
+                    ui.boxes[tidx].color(FL_YELLOW)
+                elif timediff > 100:
+                    ui.boxes[tidx].color(FL_BLUE)
+                else:
+                    ui.boxes[tidx].color(FL_GREEN)
 
         elif smessage.cmd_id=="FECC-OFF":
             #Disconnect/reconnect after notifying user of bug
@@ -2376,10 +2410,6 @@ def main():
     c_state = ClientState()
     c_state.stack.append((ClientState.FOLDER,"Tasks")) #This will always exist.
     
-    #Set up UI
-    ui = ClientUI()
-    ui.make_window()
-
     #Read cache
     if len(sys.argv)==4:
         cachedir = os.path.join(os.path.expanduser("~"),".mailtask_data")
@@ -2388,6 +2418,10 @@ def main():
 
     #Initialize account information
     initialize_account_info()
+
+    #Set up UI
+    ui = ClientUI()
+    ui.make_window()
 
     #Initialize addressbook
     try:
