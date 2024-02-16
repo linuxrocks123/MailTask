@@ -486,6 +486,8 @@ class ClientUI:
                             prefix = "@C"+repr(FL_DARK_MAGENTA)+"@."
                         elif entry[1]['X-MailTask-Completion-Status']=="Completed" and 'X-MailTask-Priority' in entry[1]:
                             prefix = "@C"+repr(FL_DARK_CYAN)+"@."
+                        elif 'X-MailTask-Priority' in entry[1] and int(entry[1]['X-MailTask-Priority']) > 1:
+                            prefix = "@b@C"+repr(FL_RED)+"@."
                         elif 'X-MailTask-Priority' in entry[1]:
                             prefix = "@b@."
                         ui.main_browser.add(prefix+mt_utils.get_unicode_subject(entry[1]['Subject'])+"\t@."+tasktype+"\t@."+dinfo)
@@ -1799,6 +1801,7 @@ class ClientState:
         #Dynamically generated: Ctrl-0 uses account 0 as from, etc.
         for i in range(len(account_info)):
             valid_shortcuts[(FL_CTRL,ord(repr(i)))] = functools.partial(c_state.compose,i)
+            valid_shortcuts[(FL_CTRL|FL_ALT,ord(repr(i)))] = functools.partial(nsync.send_reset_signal,i)
 
         if (modified_event_state,Fl_event_key()) not in valid_shortcuts:
             return 0
@@ -2165,6 +2168,28 @@ class ClientNetSync:
             return f_2
         self.server_update_queue.append(f_1)
     
+    def send_reset_signal(self,accid):
+        def f_1():
+            try:
+                self.cmessage_conn.write(OnTask_Message("FORCE-RESET",repr(accid)).get_message_string())
+            except:
+                self.fatal_error_cancel_connection()
+                self.connmanager()
+                return f_1
+
+            def f_2():
+                try:
+                    reply = OnTask_Message.message_from_socket(self.cmessage_conn)
+                    if reply.cmd_id!="ACK":
+                        raise IOError("Unexpected reply")
+                except:
+                    self.fatal_error_cancel_connection()
+                    self.connmanager()
+                    return f_1
+                return None
+            return f_2
+        self.server_update_queue.append(f_1)
+
     ##Does not return until connection is successful
     def connmanager(self):
         ui.block_w.show()

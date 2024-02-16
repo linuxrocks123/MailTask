@@ -271,13 +271,21 @@ class client_service_thread:
     def keepalive_notify(self,body):
         self.socket.write(OnTask_Message("ACK","").get_message_string())
 
+    ##FORCE-RESET command
+    # Format:
+    # - Numeric ID containing account number to reset
+    def force_reset(self,body):
+        imap_status[int(body)] = 0
+        self.socket.write(OnTask_Message("ACK","").get_message_string())        
+
     ##Dictionary of supported client requests
     # Why?  Because Python doesn't have a switch statement
     clientreq = {"NODE-UPDATE" : node_update, "SEND-EMAIL" : send_email,
                  "ATOMIC-UPDATE" : atomic_update,
                  "NODE-REQUEST" : node_request,
                  "FOLDER-UPDATE-REQ" : folder_update_req,
-                 "KEEPALIVE-NOTIFY" : keepalive_notify}
+                 "KEEPALIVE-NOTIFY" : keepalive_notify,
+                 "FORCE-RESET" : force_reset}
 
     ##We get here just after the thread is created
     def __call__(self):
