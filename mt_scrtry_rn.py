@@ -159,6 +159,9 @@ def handle_msg(uidpath,rfc822,mirror_flag):
             print "*BUG!*: We found a Task with no or invalid X-MailTask-Completion-Status."
             sys.stdout.flush()
 
+        if 'X-MailTask-Slay' in msg or 'X-MailTask-Resurrect' in msg:
+            l_timedep_tasks[uidpath]=msg
+
         #Examine References header and update msg_dict
         msg_dict.process_msg(msg,uidpath)
 
@@ -555,9 +558,14 @@ def do_timedep_check():
     for entry in l_timedep_tasks.items():
         tasktype = mt_utils.get_task_type(entry[1])
         current_time = time.time()
-        if tasktype=="Deadline" and current_time > email.utils.mktime_tz(email.utils.parsedate_tz(entry[1]['X-MailTask-Date-Info'])) or tasktype=="Meeting" and current_time > email.utils.mktime_tz(email.utils.parsedate_tz(entry[1]['X-MailTask-Date-Info'].split("/")[1].strip())):
+        if tasktype=="Deadline" and current_time > email.utils.mktime_tz(email.utils.parsedate_tz(entry[1]['X-MailTask-Date-Info'])) or 'X-MailTask-Slay' in entry[1] and current_time > email.utils.mktime_tz(email.utils.parsedate_tz(entry[1]['X-MailTask-Slay'])) or tasktype=="Meeting" and current_time > email.utils.mktime_tz(email.utils.parsedate_tz(entry[1]['X-MailTask-Date-Info'].split("/")[1].strip())):
             del entry[1]['X-MailTask-Completion-Status']
             entry[1]['X-MailTask-Completion-Status']="Completed"
+            nsync.node_update(entry[0],entry[1].as_string())
+            del l_timedep_tasks[entry[0]]
+        elif 'X-MailTask-Resurrect' in entry[1] and current_time > email.utils.mktime_tz(email.utils.parsedate_tz(entry[1]['X-MailTask-Resurrect'])):
+            del entry[1]['X-MailTask-Completion-Status']
+            entry[1]['X-MailTask-Completion-Status']="Incomplete"
             nsync.node_update(entry[0],entry[1].as_string())
             del l_timedep_tasks[entry[0]]
 
