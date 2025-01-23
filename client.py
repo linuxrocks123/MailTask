@@ -67,7 +67,7 @@ PROG_VERSION_STRING="MailTask/20181227"
 
 ##Constant tuple containing all user-modifiable headers.
 # Other headers are ignored.
-MODIFIABLE_HEADERS = CaseInsensitiveList(["From","Reply-To","To","Cc","Bcc","Subject", "X-MailTask-Date-Info", "X-MailTask-Completion-Status", "X-MailTask-Priority", "Date"])
+MODIFIABLE_HEADERS = CaseInsensitiveList(["From","Reply-To","To","Cc","Bcc","Subject", "X-MailTask-Date-Info", "X-MailTask-Completion-Status", "X-MailTask-Priority", "X-MailTask-Slay", "X-MailTask-Resurrect", "Date"])
 
 ##Constant tuple containing headers likely to have an email address in them
 EMAIL_MODIFIABLE_HEADERS = CaseInsensitiveList(["From","Reply-To","To","Cc","Bcc"])
