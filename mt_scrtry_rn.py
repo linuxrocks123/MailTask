@@ -105,6 +105,32 @@ class Msg_Dict:
                     if not len(self.rev_mid_dict[rmid]):
                         del self.rev_mid_dict[rmid]
 
+def perform_email_info_modifications(newtask,payload,msg):
+    for entry in email_info:
+        matched = True
+        if entry[0][0]=="From":
+            if client.get_email_addr_from_header(msg['From'])==entry[0][1] or client.get_nick_from_header(msg['From'])==entry[0][1]:
+                matched = True
+        elif entry[0][0]=="In-Subject":
+            if msg['Subject'].find(entry[0][1])!=-1:
+                matched = True
+        elif entry[0][0]=="In-Body":
+            if mt_utils.get_body(msg).get_payload().find(entry[0][1])!=-1:
+                matched = True
+
+        if matched:
+            if entry[1][0]=="Body":
+                if payload=="":
+                    payload = entry[1][1]
+            elif entry[1][0]=="Auto-Die":
+                if 'X-MailTask-Slay' not in newtask:
+                    newtask['X-MailTask-Slay'] = email.utils.formatdate(timeval=int(time.time())+int(entry[1][1]),localtime=True)
+            else:
+                if entry[1][0] not in newtask:
+                    newtask[entry[1][0]]=entry[1][1]
+
+    return payload
+
 ##handle_msg: analyze a new message and, if it's important,
 #             act in whatever way is appropriate
 def handle_msg(uidpath,rfc822,mirror_flag):
@@ -385,11 +411,7 @@ def handle_msg(uidpath,rfc822,mirror_flag):
             newtask=email.message.Message()
             nt_body = email.message.Message()
             nt_body['Content-Type'] = "text/plain"
-            payload=""
-            if client.get_email_addr_from_header(msg['From']) in email_info:
-                payload=email_info[client.get_email_addr_from_header(msg['From'])]
-            elif client.get_nick_from_header(msg['From']) in email_info:
-                payload=email_info[client.get_nick_from_header(msg['From'])]
+            payload=perform_email_info_modifications(newtask,"",msg)
             nt_body.set_payload(payload)
             mt_utils.attach_payload(newtask,nt_body)
             newtask['Content-Type']="multipart/x.MailTask"
@@ -533,19 +555,16 @@ def initialize_email_info_and_ignored_senders_accounts():
     global ignored_senders
     global ignored_accounts
     global unignored_senders
+    global autoforward_map
 
-    email_info={}
+    email_info=[]
     ignored_senders=set()
     ignored_accounts=set()
     unignored_senders=set()
 
-    f_email_info = open("email_info.txt")
-    try:
-        while True:
-            ot_m = OnTask_Message.message_from_socket(f_email_info)
-            email_info[ot_m.cmd_id]=ot_m.body
-    except:
-        pass
+    lines = map(str.rstrip,open("email_info.txt").readlines())
+    for i in range(0,len(lines),2):
+        email_info.append((lines[i].split(": ",1),lines[i+1].split(": ",1)))
 
     for line in map(str.rstrip,open("ignored_senders.txt").readlines()):
         ignored_senders.add(line)
